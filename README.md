@@ -42,7 +42,3 @@ Note: This commit includes only directory structure and placeholder files (no co
   - tests/
   - scripts/
 
-## Next steps (optional)
-- Initialize git and your package managers in `client/` and `server/`.
-- Add your chosen frameworks, linters, and CI.
-- Create `.env.example` files documenting required environment variables.
