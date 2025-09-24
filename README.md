@@ -76,6 +76,7 @@ Note: The frontend is already scaffolded with Vite and builds successfully. The 
   - tests/
   - scripts/
 
+<<<<<<< HEAD
 ## Getting started
 
 ### Prerequisites
@@ -132,3 +133,5 @@ npm run preview
 ## License
 TBD
 
+=======
+>>>>>>> 9e0db7271087abe85272b65797c0741715550e17
