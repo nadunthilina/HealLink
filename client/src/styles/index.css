@@ -1,6 +1,12 @@
-/* Minimal base styles */
-:root { color-scheme: light dark; }
-html, body, #root { height: 100%; margin: 0; }
-body { line-height: 1.5; }
-h1 { font-size: 1.5rem; margin: 0 0 0.5rem; }
-p { margin: 0; }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App base styles */
+html, body, #root { height: 100%; }
+body { @apply bg-white text-slate-800 antialiased; }
+
+.btn-primary { @apply inline-flex items-center gap-2 rounded-full bg-blue-700 text-white px-5 py-3 shadow-soft hover:bg-blue-800 transition; }
+.chip { @apply inline-flex items-center gap-2 rounded-xl bg-blue-700 text-white px-4 py-2; }
+.section { @apply py-16 md:py-24; }
+.container { @apply max-w-6xl mx-auto px-4; }
