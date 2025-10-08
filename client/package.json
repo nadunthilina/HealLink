@@ -11,8 +11,10 @@
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.14",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.9.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
