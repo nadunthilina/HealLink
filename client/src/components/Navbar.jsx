@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-30 bg-white/70 backdrop-blur border-b border-slate-100">
@@ -5,7 +7,8 @@ export default function Navbar() {
         <a href="#" className="font-semibold text-blue-700">HealLink</a>
         <nav className="hidden md:flex items-center gap-8 text-slate-700">
           <a href="#home" className="hover:text-blue-700">Home</a>
-          <a href="#dashboard" className="hover:text-blue-700">Dashboard</a>
+          <Link to="/dashboard" className="hover:text-blue-700">Dashboard</Link>
+
           <a href="#registration" className="hover:text-blue-700">Registration</a>
           <a href="#contact" className="hover:text-blue-700">Contact</a>
         </nav>
