@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App base styles */
+html, body, #root { height: 100%; }
+body { @apply bg-white text-slate-800 antialiased; }
+
+.btn-primary { @apply inline-flex items-center gap-2 rounded-full bg-blue-700 text-white px-5 py-3 shadow-soft hover:bg-blue-800 transition; }
+.chip { @apply inline-flex items-center gap-2 rounded-xl bg-blue-700 text-white px-4 py-2; }
+.section { @apply py-16 md:py-24; }
+.container { @apply max-w-6xl mx-auto px-4; }
