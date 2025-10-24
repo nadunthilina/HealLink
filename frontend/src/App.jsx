@@ -5,6 +5,7 @@ import { Suspense, lazy } from 'react'
 const Landing = lazy(() => import('./pages/Landing.jsx'))
 const Login = lazy(() => import('./pages/Login.jsx'))
 const SignUp = lazy(() => import('./pages/SignUp.jsx'))
+const Caretaker = lazy(() => import('./pages/Caretaker.jsx'))
 
 // Loading component
 function LoadingSpinner() {
@@ -59,7 +60,8 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        
+        <Route path="/caretaker" element={<Caretaker />} />
+
         {/* Catch-all route for 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
