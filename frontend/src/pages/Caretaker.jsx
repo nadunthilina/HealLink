@@ -253,7 +253,7 @@ export default function Caretaker() {
             />
           </div>
 
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded">
             Save Changes
           </button>
         </form>
@@ -328,7 +328,7 @@ export default function Caretaker() {
 
   const renderAvailabilityPage = () => (
     <div className="ava bg-sky-100  rounded-lg shadow-sm border p-6 ">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
+      <h2 className="text-2xl font-bold text-gray-900 h-fit mb-16">
         Availability Settings
       </h2>
 
@@ -657,7 +657,7 @@ export default function Caretaker() {
             />
           </div>
 
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white  py-2 px-4 rounded">
             Submit Daily Report
           </button>
         </form>
@@ -705,7 +705,7 @@ export default function Caretaker() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="flex pt-16">
+      <div className="flex pt-1">
         {/* Sidebar */}
         <div className="cont2">
           <div className=" bg-sky-300 shadow-lg border-r min-h-full ">
