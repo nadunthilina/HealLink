@@ -15,16 +15,18 @@ function signTokens(user) {
   return { accessToken, refreshToken }
 }
 
+// Public signup: Patients/members only. Caretakers should be created by admin via /api/users/caretakers
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, phone, password, role } = req.body
-    if (!name || !email || !password || !role) return res.status(400).json({ message: 'Missing fields' })
+    const { name, email, phone, password } = req.body
+    if (!name || !email || !password) return res.status(400).json({ message: 'Missing fields' })
 
     const exists = await User.findOne({ email })
     if (exists) return res.status(409).json({ message: 'Email already in use' })
 
     const passwordHash = await bcrypt.hash(password, 10)
-    const user = await User.create({ name, email, phone, passwordHash, role })
+    const role = 'patient'
+    const user = await User.create({ name, email, phone, passwordHash, role, status: 'active' })
     const tokens = signTokens(user)
 
     res.status(201).json({ user: { id: user._id, name, email, role }, ...tokens })
@@ -39,6 +41,8 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body
     const user = await User.findOne({ email })
     if (!user) return res.status(401).json({ message: 'Invalid credentials' })
+
+    if (user.status !== 'active') return res.status(403).json({ message: 'Account inactive. Contact admin.' })
 
     const ok = await bcrypt.compare(password, user.passwordHash)
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' })
