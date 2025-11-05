@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function Login() {
+  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,25 +18,55 @@ export default function Login() {
       ...prev,
       [name]: value
     }))
+    setError('') // Clear error on input change
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Call backend API for login
+      const response = await fetch('http://localhost:4000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      })
+
+      const data = await response.json()
       
-      // Here you would make actual API call
-      console.log('Login attempt:', formData)
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed')
+      }
+
+      // Verify that the user's role matches the selected role
+      if (data.user.role !== formData.role) {
+        throw new Error(`This account is registered as ${data.user.role}, not ${formData.role}`)
+      }
+
+      // Store token and user info
+      localStorage.setItem('token', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+      localStorage.setItem('user', JSON.stringify(data.user))
       
-      // For demo: show success message
-      alert('Login successful! (Demo mode)')
+      // Redirect based on role from database
+      if (data.user.role === 'admin') {
+        navigate('/admin')
+      } else if (data.user.role === 'caretaker') {
+        navigate('/caretaker')
+      } else {
+        navigate('/patient')
+      }
       
     } catch (error) {
       console.error('Login failed:', error)
-      alert('Login failed. Please try again.')
+      setError(error.message || 'Login failed. Please check your credentials.')
     } finally {
       setIsLoading(false)
     }
@@ -102,6 +134,13 @@ export default function Login() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
                 <p className="text-gray-600">Sign in to access your HealLink account</p>
               </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
 
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
