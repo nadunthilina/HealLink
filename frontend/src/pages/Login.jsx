@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import axios from 'axios'
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
@@ -18,27 +19,32 @@ export default function Login() {
     }))
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Here you would make actual API call
-      console.log('Login attempt:', formData)
-      
-      // For demo: show success message
-      alert('Login successful! (Demo mode)')
-      
-    } catch (error) {
-      console.error('Login failed:', error)
-      alert('Login failed. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
+
+  try {
+    // Send login request to backend
+    const response = await axios.post("http://localhost:4000/api/auth/login", {
+      email: formData.email,
+      password: formData.password,
+    });
+
+    // Save token (if backend sends one)
+    localStorage.setItem("access_token", response.data.accessToken);
+
+    alert("✅ Login successful!");
+    console.log("User logged in:", response.data);
+
+    // Redirect to dashboard or analysis page
+    window.location.href = "/caretaker";
+  } catch (error) {
+    console.error("Login failed:", error);
+    alert(error.response?.data?.message || "Login failed. Please try again.");
+  } finally {
+    setIsLoading(false);
   }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex">
