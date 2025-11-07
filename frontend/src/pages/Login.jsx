@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
+      const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: 'patient'
+    role: ''
   })
   const [showPassword, setShowPassword] = useState(false)
 
@@ -19,30 +21,32 @@ export default function Login() {
     }))
   }
 
- const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
-  setIsLoading(true);
-
   try {
-    // Send login request to backend
-    const response = await axios.post("http://localhost:4000/api/auth/login", {
-      email: formData.email,
-      password: formData.password,
-    });
+   
+    const response = await axios.post('http://localhost:4000/api/auth/login', formData);
+ 
 
-    // Save token (if backend sends one)
-    localStorage.setItem("access_token", response.data.accessToken);
+    alert(`✅ Welcome back, ${response.data.user.name}! Role: ${response.data.user.role}`);
 
-    alert("✅ Login successful!");
-    console.log("User logged in:", response.data);
+    // Save user info in localStorage
+    localStorage.setItem('user', JSON.stringify(response.data.user));
 
-    // Redirect to dashboard or analysis page
-    window.location.href = "/caretaker";
+    // ✅ Redirect based on user role
+    if (response.data.user.role === 'admin') {
+      navigate('/admin-dashboard');
+    } else if (response.data.user.role === 'caretaker') {
+      navigate('/caretaker');
+    } else if (response.data.user.role === 'patient') {
+      navigate('/patient-dashboard');
+    } else {
+      navigate('/'); // fallback
+    }
+
   } catch (error) {
-    console.error("Login failed:", error);
-    alert(error.response?.data?.message || "Login failed. Please try again.");
-  } finally {
-    setIsLoading(false);
+    console.error('Login failed:', error);
+    alert(error.response?.data?.message || 'Login failed. Please try again.');
   }
 };
 
