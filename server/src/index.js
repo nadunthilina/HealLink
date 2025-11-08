@@ -7,6 +7,8 @@ import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
+import userDetailsRoutes from "./routes/userDetails.js";
+
 
 
 dotenv.config()
@@ -25,6 +27,7 @@ app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
+app.use("/api/userDetails", userDetailsRoutes)
 
 const PORT = process.env.PORT || 4000
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/heallink'

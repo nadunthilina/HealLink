@@ -27,11 +27,13 @@ const handleSubmit = async (e) => {
    
     const response = await axios.post('http://localhost:4000/api/auth/login', formData);
  
-
+console.log("Login response:", response.data);
     alert(`✅ Welcome back, ${response.data.user.name}! Role: ${response.data.user.role}`);
 
     // Save user info in localStorage
     localStorage.setItem('user', JSON.stringify(response.data.user));
+    localStorage.setItem("userId", response.data.user.id);
+    localStorage.setItem("role", response.data.user.role);
 
     // ✅ Redirect based on user role
     if (response.data.user.role === 'admin') {
