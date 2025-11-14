@@ -159,7 +159,7 @@ export default function Caretaker() {
         Assigned Patients
       </h2>
     </div>
-    <div className="cont p-6">
+    <div className="cont p-0">
       {assignedPatients.map((patient) => (
         <div
           key={patient.id}
@@ -225,8 +225,8 @@ const renderAvailabilityPage = () => (
       Availability Settings
     </h2>
 
-    <div className="space-y-8">
-      <div className="flex items-center justify-between p-6 bg-gray-50 rounded-lg">
+    <div className="space-y-12">
+      <div className="flex items-center justify-between p-8 bg-gray-50 rounded-lg">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Current Availability Status
@@ -284,11 +284,12 @@ const renderAvailabilityPage = () => (
 );
 
   const renderReportsPage = () => (
-    <div className="cont p-6">
-      <h2 className="text-2xl font-bold mb-4">Daily Reports & Care Notes</h2>
+    <div className="cont  ">
+      <div className=" p-5 mb-6 bg-sky-100 rounded-lg shadow-sm border">
+      <h2 className="text-2xl font-bold mb-10">Daily Reports & Care Notes</h2></div>
 
       <form onSubmit={handleReportSubmit} className="mb-6 p-4 border rounded-lg bg-sky-100">
-        <h3 className="font-semibold mb-2">Submit Daily Report</h3>
+        <h3 className="font-semibold ">Submit Daily Report</h3>
         <input type="text" placeholder="Patient" value={dailyReportForm.patient} onChange={(e) => setDailyReportForm({ ...dailyReportForm, patient: e.target.value })} className="w-full mb-2 border px-2 py-1 rounded-lg" required />
         <textarea placeholder="Activities" value={dailyReportForm.activities} onChange={(e) => setDailyReportForm({ ...dailyReportForm, activities: e.target.value })} className="w-full mb-2 border px-2 py-1 rounded-lg" rows={3} required />
         <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded">Submit</button>
