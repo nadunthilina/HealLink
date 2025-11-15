@@ -3,7 +3,7 @@ import Navbar from "../components/Navbar";
 import axios from "axios";
 
 export default function Caretaker() {
-  const [activePage, setActivePage] = useState("userDetails");
+  const [activePage, setActivePage] = useState( "userDetails");
   const [user, setUser] = useState(null);
   const [isAvailable, setIsAvailable] = useState(true);
 
@@ -69,30 +69,77 @@ export default function Caretaker() {
     emergencyContact: "",
   });
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userId = localStorage.getItem("userId");
-        const res = await axios.get(`http://localhost:4000/api/auth/user/${userId}`);
-        setUser(res.data);
-        setCaretakerData({
-          name: res.data.name || "",
-          email: res.data.email || "",
-          phone: res.data.phone || "",
-          address: res.data.address || "",
-          specialization: res.data.specialization || "",
-          experience: res.data.experience || "",
-          license: res.data.license || "",
-          emergencyContact: res.data.emergencyContact || "",
-        });
-      } catch (err) {
-        console.error("Error fetching user:", err);
-      }
-    };
-    fetchUser();
-  }, []);
+ useEffect(() => {
+  const fetchUserAndDetails = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
 
-  const handleUserDataSave = () => alert("Profile updated successfully!");
+      // basic user info (name, email, phone)
+      const basicReq = axios.get(`http://localhost:4000/api/auth/user/${userId}`)
+        .catch(() => ({ data: null }));
+
+      // saved caretaker details (address, specialization, ...)
+      // (make sure you have this route on the backend: GET /api/userdetails/details/:userId)
+      const detailsReq = axios.get(`http://localhost:4000/api/userdetails/details/${userId}`)
+        .catch(() => ({ data: null }));
+
+      const [basicRes, detailsRes] = await Promise.all([basicReq, detailsReq]);
+
+      // update caretakerData using one state setter (no setAddress/setEmail etc.)
+      setCaretakerData(prev => ({
+        ...prev,
+        name: basicRes?.data?.name ?? prev.name,
+        email: basicRes?.data?.email ?? prev.email,
+        phone: basicRes?.data?.phone ?? prev.phone,
+        // overwrite with saved details if they exist
+        address: detailsRes?.data?.address ?? prev.address,
+        specialization: detailsRes?.data?.specialization ?? prev.specialization,
+        experience: detailsRes?.data?.experience ?? prev.experience,
+        license: detailsRes?.data?.license ?? prev.license,
+        emergencyContact: detailsRes?.data?.emergencyContact ?? prev.emergencyContact,
+      }));
+
+      // keep full user object if you need it elsewhere
+      if (basicRes?.data) setUser(basicRes.data);
+
+    } catch (err) {
+      console.error("Error loading user/details:", err);
+    }
+  };
+
+  fetchUserAndDetails();
+}, []);
+
+// ----------------- Replace your handleUserDataSave with this -----------------
+const handleUserDataSave = async () => {
+  try {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return alert("User not logged in.");
+
+    const payload = {
+      userId,
+      // backend route expects name,email,phone in UserDetails for first save (we send them too)
+      name: caretakerData.name,
+      email: caretakerData.email,
+      phone: caretakerData.phone,
+      address: caretakerData.address,
+      specialization: caretakerData.specialization,
+      experience: caretakerData.experience,
+      license: caretakerData.license,
+      emergencyContact: caretakerData.emergencyContact,
+    };
+
+    const res = await axios.post("http://localhost:4000/api/userdetails/save", payload);
+    alert(res.data?.message ?? "Saved");
+    // update local state with saved response (if backend returns details)
+    if (res.data?.details) setCaretakerData(prev => ({ ...prev, ...res.data.details }));
+  } catch (err) {
+    console.error("Error saving details:", err);
+    alert("Failed to save details");
+  }
+};
+
   const handleReportSubmit = (e) => {
     e.preventDefault();
     alert("Daily report submitted successfully!");
@@ -131,7 +178,7 @@ export default function Caretaker() {
             <input type="tel" value={caretakerData.phone} onChange={(e) => setCaretakerData({ ...caretakerData, phone: e.target.value })} className="w-full border px-4 py-2 rounded-lg" required />
           </div>
           <div>
-            <label>License Number</label>
+            <label>NIC Number</label>
             <input type="text" value={caretakerData.license} onChange={(e) => setCaretakerData({ ...caretakerData, license: e.target.value })} className="w-full border px-4 py-2 rounded-lg" required />
           </div>
         </div>
@@ -289,10 +336,12 @@ const renderAvailabilityPage = () => (
       <h2 className="text-2xl font-bold mb-10">Daily Reports & Care Notes</h2></div>
 
       <form onSubmit={handleReportSubmit} className="mb-6 p-4 border rounded-lg bg-sky-100">
-        <h3 className="font-semibold ">Submit Daily Report</h3>
-        <input type="text" placeholder="Patient" value={dailyReportForm.patient} onChange={(e) => setDailyReportForm({ ...dailyReportForm, patient: e.target.value })} className="w-full mb-2 border px-2 py-1 rounded-lg" required />
+        <h3 className="font-semibold  ">Submit Daily Report</h3>
+        <div className="space-y-4 mt-4">
+        <input  type="text" placeholder="Patient" value={dailyReportForm.patient} onChange={(e) => setDailyReportForm({ ...dailyReportForm, patient: e.target.value })} className="w-full mb-2 border px-2 py-1 rounded-lg" required />
         <textarea placeholder="Activities" value={dailyReportForm.activities} onChange={(e) => setDailyReportForm({ ...dailyReportForm, activities: e.target.value })} className="w-full mb-2 border px-2 py-1 rounded-lg" rows={3} required />
         <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded">Submit</button>
+      </div>
       </form>
 
       <h3 className="font-semibold mb-2">Recent Care Notes</h3>
@@ -324,7 +373,7 @@ const renderAvailabilityPage = () => (
           </div>
 
           {/* Action Circles */}
-          <div className="flex justify-center space-x-6 mb-8">
+          <div className="flex justify-center space-x-6 mb-5">
             <button
               onClick={() => setActivePage("notifications")}
               className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"

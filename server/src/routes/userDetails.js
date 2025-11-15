@@ -1,11 +1,12 @@
 import express from "express";
 import UserDetails from "../models/userDetails.js";
+import User from "../models/User.js";
 
 
 const router = express.Router();
 
 // Save user details
-router.post("/add", async (req, res) => {
+router.post("/save", async (req, res) => {
   try {
     const { userId, name, email, phone, address, specialization, experience, license, emergencyContact } = req.body;
 
@@ -33,5 +34,15 @@ router.post("/add", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+router.get("/details/:userId", async (req, res) => {
+  try {
+    const details = await UserDetails.findOne({ userId: req.params.userId });
+    res.json(details);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 export default router;
