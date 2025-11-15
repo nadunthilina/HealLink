@@ -160,6 +160,33 @@ const handleUserDataSave = async () => {
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   // ---------------- Render Functions ----------------
+
+const renderNotificationsPage = () => (
+  <div className="cont  h-screen ">
+  <div className="cont p-6  bg-sky-100 rounded-lg shadow-sm border">
+    <h2 className="text-2xl font-bold mb-6">Notifications</h2>
+
+    {notifications.length === 0 ? (
+      <p>No new notifications.</p>
+    ) : (
+      <div className="space-y-4">
+        {notifications.map((notif) => (
+          <div
+            key={notif.id}
+            className={`p-4 rounded-lg shadow-sm border ${
+              notif.unread ? "bg-blue-50" : "bg-white"
+            }`}
+          >
+            <p className="font-semibold">{notif.message}</p>
+            <p className="text-sm text-gray-500">{notif.time}</p>
+          </div>
+        ))}
+      </div>
+    )}
+  </div></div>
+);
+
+
   const renderUserDetailsPage = () => (
     <div className="cont p-6 bg-sky-100 rounded-lg shadow-sm border">
       <h2 className="text-2xl font-bold mb-6">Edit Caretaker Details</h2>
@@ -373,7 +400,7 @@ const renderAvailabilityPage = () => (
           </div>
 
           {/* Action Circles */}
-          <div className="flex justify-center space-x-6 mb-5">
+          <div className="flex justify-center space-x-6 mb-3">
             <button
               onClick={() => setActivePage("notifications")}
               className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
@@ -417,6 +444,7 @@ const renderAvailabilityPage = () => (
 
         {/* Main Content */}
         <div className="flex-1 p-6">
+           {activePage === "notifications" && renderNotificationsPage()}
           {activePage === "userDetails" && renderUserDetailsPage()}
           {activePage === "assignedPatients" && renderAssignedPatientsPage()}
           {activePage === "availability" && renderAvailabilityPage()}
