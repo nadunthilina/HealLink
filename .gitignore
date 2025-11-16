@@ -42,7 +42,7 @@ tmp/
 temp/
 .tmp/
 
-frontend/src/services/api.js
+
 
 server/seed.js
 
