@@ -44,7 +44,7 @@ temp/
 
 
 
-server/seed.js
+
 
 server/src/models/Booking.js
 server/src/models/Notification.js
