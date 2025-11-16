@@ -41,3 +41,13 @@ coverage/
 tmp/
 temp/
 .tmp/
+
+frontend/src/services/api.js
+
+server/seed.js
+
+server/src/models/Booking.js
+server/src/models/Notification.js
+server/src/routes/bookings.js
+server/src/routes/dashboard.js
+server/src/routes/notifications.js

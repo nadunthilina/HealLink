@@ -19,6 +19,41 @@ router.get('/me', requireAuth(), async (req, res) => {
   res.json(user)
 })
 
+// Get list of available caretakers (for patients to browse)
+router.get('/caretakers', requireAuth(['patient', 'admin']), async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query
+    const skip = (page - 1) * limit
+
+    const caretakers = await User.find({ 
+      role: 'caretaker', 
+      status: 'active' 
+    })
+      .select('name email phone status createdAt')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 })
+
+    const total = await User.countDocuments({ 
+      role: 'caretaker', 
+      status: 'active' 
+    })
+
+    res.json({
+      caretakers,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
 export default router
 
 // Admin create caretaker

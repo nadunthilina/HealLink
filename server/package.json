@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon",
     "start": "node src/index.js",
+    "seed": "node seed.js",
     "lint": "eslint .",
     "test": "node --test || echo 'no tests'"
   },
