@@ -385,18 +385,18 @@ const renderAvailabilityPage = () => (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="flex">
+      <div className="flex ">
         {/* Sidebar */}
-        <div className="w-80 bg-sky-300 shadow-lg border-r p-4 flex flex-col">
+        <div className="w-20 bg-sky-300 shadow-lg border-r p-4 flex flex-col md:w-80">
           {/* User Profile */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center md:w-24 md:h-24">
               <span className="text-white text-2xl font-bold">
                 {caretakerData.name.split(" ").map((n) => n[0]).join("")}
               </span>
             </div>
-            <p className="text-gray-500 font-light">Welcome</p>
-            <h2 className="text-xl font-bold text-gray-900">{caretakerData.name}</h2>
+            <p className="text-gray-500 text-xs font-light md:text-xl">Welcome</p>
+            <h2 className="text-xs font-bold text-gray-900 md:text-xl">{caretakerData.name}</h2>
           </div>
 
           {/* Action Circles */}
@@ -431,12 +431,12 @@ const renderAvailabilityPage = () => (
               <button
                 key={item.id}
                 onClick={() => setActivePage(item.id)}
-                className={`w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 transition-colors ${
+                className={`w-10  text-left px-4 py-3 rounded-lg flex items-center space-x-3 transition-colors md:w-full   ${
                   activePage === item.id ? "bg-blue-100 text-blue-700 font-medium" : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 <span className="text-lg">{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="ml-4 hidden md:block">{item.label}</span>
               </button>
             ))}
           </nav>
