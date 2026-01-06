@@ -15,6 +15,10 @@ const CaretakerManagement = lazy(() => import('./pages/admin/CaretakerManagement
 const PatientManagement = lazy(() => import('./pages/admin/PatientManagement.jsx'))
 const UserManagement = lazy(() => import('./pages/admin/UserManagement.jsx'))
 
+// 🩺 Member 5: Patient pages
+const PatientDashboard = lazy(() => import('./pages/patient/PatientDashboard.jsx'))
+const CaretakerDirectory = lazy(() => import('./pages/patient/CaretakerDirectory.jsx'))
+
 // Loading component
 function LoadingSpinner() {
   return (
@@ -81,6 +85,10 @@ export default function App() {
           <Route path="patients" element={<PatientManagement />} />
           <Route path="users" element={<UserManagement />} />
         </Route>
+
+        {/* 🩺 Member 5 Routes - Patient Dashboard & Caretaker Directory */}
+        <Route path="/patient/dashboard" element={<PatientDashboard />} />
+        <Route path="/patient/caretakers" element={<CaretakerDirectory />} />
 
         {/* Catch-all route for 404 */}
         <Route path="*" element={<NotFound />} />
