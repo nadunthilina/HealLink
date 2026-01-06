@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { authAPI } from '../services/api'
 
 export default function Login() {
+  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,25 +19,35 @@ export default function Login() {
       ...prev,
       [name]: value
     }))
+    setError('') // Clear error when user types
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const { data } = await authAPI.login(formData.email, formData.password)
       
-      // Here you would make actual API call
-      console.log('Login attempt:', formData)
+      // Store auth data
+      localStorage.setItem('token', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+      localStorage.setItem('user', JSON.stringify(data.user))
       
-      // For demo: show success message
-      alert('Login successful! (Demo mode)')
+      // Redirect based on role
+      if (data.user.role === 'admin') {
+        navigate('/admin')
+      } else if (data.user.role === 'caretaker') {
+        navigate('/caretaker')
+      } else {
+        navigate('/')
+      }
       
     } catch (error) {
       console.error('Login failed:', error)
-      alert('Login failed. Please try again.')
+      const errorMessage = error.response?.data?.message || 'Login failed. Please check your credentials.'
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -105,6 +118,13 @@ export default function Login() {
 
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                )}
+
                 {/* Email Field */}
                 <div>
                   <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
