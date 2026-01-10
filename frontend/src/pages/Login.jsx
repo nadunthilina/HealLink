@@ -1,4 +1,5 @@
 import { useState } from 'react'
+
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 export default function Login() {
       const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,7 +21,9 @@ export default function Login() {
       ...prev,
       [name]: value
     }))
+    setError('') // Clear error when user types
   }
+
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -44,6 +48,7 @@ console.log("Login response:", response.data);
       navigate('/patient-dashboard');
     } else {
       navigate('/'); // fallback
+ 
     }
 
   } catch (error) {
@@ -117,6 +122,13 @@ console.log("Login response:", response.data);
 
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                )}
+
                 {/* Email Field */}
                 <div>
                   <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">

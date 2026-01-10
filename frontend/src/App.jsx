@@ -1,11 +1,23 @@
 import { Route, Routes } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
+import ProtectedRoute from './components/ProtectedRoute'
 
 // Lazy load components for better performance  
 const Landing = lazy(() => import('./pages/Landing.jsx'))
 const Login = lazy(() => import('./pages/Login.jsx'))
 const SignUp = lazy(() => import('./pages/SignUp.jsx'))
 const Caretaker = lazy(() => import('./pages/Caretaker.jsx'))
+
+// Admin components (Member 2)
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout.jsx'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard.jsx'))
+const CaretakerManagement = lazy(() => import('./pages/admin/CaretakerManagement.jsx'))
+const PatientManagement = lazy(() => import('./pages/admin/PatientManagement.jsx'))
+const UserManagement = lazy(() => import('./pages/admin/UserManagement.jsx'))
+
+// 🩺 Member 5: Patient pages
+const PatientDashboard = lazy(() => import('./pages/patient/PatientDashboard.jsx'))
+const CaretakerDirectory = lazy(() => import('./pages/patient/CaretakerDirectory.jsx'))
 
 // Loading component
 function LoadingSpinner() {
@@ -43,14 +55,14 @@ function NotFound() {
 }
 
 /**
- * Member 1 - Landing Page Application
+ * HealLink MERN Application
  * 
- * Responsibilities:
- * - Landing Page with system introduction
- * - Service benefits and features
- * - Login & Sign Up functionality
- * - Contact/Support information
- * - Animated healthcare hero section
+ * Member 1: Landing Page with system introduction
+ * Member 2: Admin Dashboard + Management Pages (Dashboard, Caretakers, Patients, Users)
+ * Member 3: Scheduling & Notifications
+ * Member 4: Caretaker Interfaces
+ * Member 5: Patient / Family Interfaces
+ * Member 6: Shared Interfaces (Account & Support)
  */
 export default function App() {
   return (
@@ -61,6 +73,22 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/caretaker" element={<Caretaker />} />
+
+        {/* Member 2's Routes - Admin Dashboard + Management (Protected - Admin Only) */}
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<AdminDashboard />} />
+          <Route path="caretakers" element={<CaretakerManagement />} />
+          <Route path="patients" element={<PatientManagement />} />
+          <Route path="users" element={<UserManagement />} />
+        </Route>
+
+        {/* 🩺 Member 5 Routes - Patient Dashboard & Caretaker Directory */}
+        <Route path="/patient/dashboard" element={<PatientDashboard />} />
+        <Route path="/patient/caretakers" element={<CaretakerDirectory />} />
 
         {/* Catch-all route for 404 */}
         <Route path="*" element={<NotFound />} />

@@ -23,19 +23,24 @@ function signTokens(user) {
   return { accessToken, refreshToken };
 }
 
+
 router.post("/register", async (req, res) => {
   try {
     const { name, email, phone, password, role } = req.body;
     if (!name || !email || !password || !role)
       return res.status(400).json({ message: "Missing fields" });
 
+
     const exists = await User.findOne({ email });
     if (exists)
       return res.status(409).json({ message: "Email already in use" });
 
+
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, phone, passwordHash, role });
     const tokens = signTokens(user);
+
+ 
 
     res
       .status(201)
@@ -55,9 +60,11 @@ router.post("/login", async (req, res) => {
     }
     const isMatch = await bcrypt.compare(password, user.passwordHash);
 
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid email or password" });
-    }
+
+    if (user.status !== 'active') return res.status(403).json({ message: 'Account inactive. Contact admin.' })
+
+    const ok = await bcrypt.compare(password, user.passwordHash)
+    if (!ok) return res.status(401).json({ message: 'Invalid credentials' })
 
     if (user.role !== role) {
       return res
