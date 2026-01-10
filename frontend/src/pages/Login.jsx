@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { authAPI } from '../services/api'
+
+import { Link } from 'react-router-dom'
+import axios from 'axios'
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  const navigate = useNavigate()
+      const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: 'patient'
+    role: ''
   })
   const [showPassword, setShowPassword] = useState(false)
 
@@ -22,36 +24,38 @@ export default function Login() {
     setError('') // Clear error when user types
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    
-    try {
-      const { data } = await authAPI.login(formData.email, formData.password)
-      
-      // Store auth data
-      localStorage.setItem('token', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      
-      // Redirect based on role
-      if (data.user.role === 'admin') {
-        navigate('/admin')
-      } else if (data.user.role === 'caretaker') {
-        navigate('/caretaker')
-      } else {
-        navigate('/')
-      }
-      
-    } catch (error) {
-      console.error('Login failed:', error)
-      const errorMessage = error.response?.data?.message || 'Login failed. Please check your credentials.'
-      setError(errorMessage)
-    } finally {
-      setIsLoading(false)
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+   
+    const response = await axios.post('http://localhost:4000/api/auth/login', formData);
+ 
+console.log("Login response:", response.data);
+    alert(`✅ Welcome back, ${response.data.user.name}! Role: ${response.data.user.role}`);
+
+    // Save user info in localStorage
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    localStorage.setItem("userId", response.data.user.id);
+    localStorage.setItem("role", response.data.user.role);
+
+    // ✅ Redirect based on user role
+    if (response.data.user.role === 'admin') {
+      navigate('/admin-dashboard');
+    } else if (response.data.user.role === 'caretaker') {
+      navigate('/caretaker');
+    } else if (response.data.user.role === 'patient') {
+      navigate('/patient-dashboard');
+    } else {
+      navigate('/'); // fallback
+ 
     }
+
+  } catch (error) {
+    console.error('Login failed:', error);
+    alert(error.response?.data?.message || 'Login failed. Please try again.');
   }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex">

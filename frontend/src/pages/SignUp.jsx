@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import axios from 'axios'
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
-    fullName: '',
+   name: '',
     email: '',
     phone: '',
     role: 'patient',
@@ -27,8 +28,8 @@ export default function SignUp() {
   const validateForm = () => {
     const newErrors = {}
 
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required'
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required'
     }
 
     if (!formData.email.trim()) {
@@ -57,35 +58,33 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    if (!validateForm()) return
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    setIsLoading(true)
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Mock success response
-      alert(`Account created successfully for ${formData.fullName}! Please check your email to verify your account.`)
-      
-      // Reset form
-      setFormData({
-        fullName: '',
-        email: '',
-        phone: '',
-        role: 'patient',
-        password: '',
-        confirmPassword: ''
-      })
-    } catch (error) {
-      console.error('Sign up failed:', error)
-      alert('Sign up failed. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
+  if (!validateForm()) return;
+
+  setIsLoading(true);
+  try {
+    const response = await axios.post('http://localhost:4000/api/auth/register', formData);
+
+    alert(`✅ Account created successfully for ${response.data.name || formData.name}!`);
+
+    // Reset form
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      role: 'Caretaker',
+      password: '',
+      confirmPassword: ''
+    });
+  } catch (error) {
+    console.error('Sign up failed:', error);
+    alert(error.response?.data?.message || 'Sign up failed. Please try again.');
+  } finally {
+    setIsLoading(false);
   }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-6 py-12">
@@ -108,16 +107,16 @@ export default function SignUp() {
               </label>
               <input
                 type="text"
-                name="fullName"
-                value={formData.fullName}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-lg ${
-                  errors.fullName ? 'border-red-500' : 'border-gray-300'
+                  errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your full name"
               />
-              {errors.fullName && (
-                <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
               )}
             </div>
 
