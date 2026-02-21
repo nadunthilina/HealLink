@@ -11,7 +11,7 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: ''
+    role: 'patient'
   })
   const [showPassword, setShowPassword] = useState(false)
 
@@ -32,20 +32,23 @@ const handleSubmit = async (e) => {
     const response = await axios.post('http://localhost:4000/api/auth/login', formData);
  
 console.log("Login response:", response.data);
+    // Welcome message
     alert(`✅ Welcome back, ${response.data.user.name}! Role: ${response.data.user.role}`);
 
-    // Save user info in localStorage
+    // Save user info + tokens in localStorage
     localStorage.setItem('user', JSON.stringify(response.data.user));
+    localStorage.setItem('token', response.data.accessToken || '');
+    localStorage.setItem('refreshToken', response.data.refreshToken || '');
     localStorage.setItem("userId", response.data.user.id);
     localStorage.setItem("role", response.data.user.role);
 
     // ✅ Redirect based on user role
     if (response.data.user.role === 'admin') {
-      navigate('/admin-dashboard');
+      navigate('/admin');
     } else if (response.data.user.role === 'caretaker') {
       navigate('/caretaker');
     } else if (response.data.user.role === 'patient') {
-      navigate('/patient-dashboard');
+      navigate('/patient/dashboard');
     } else {
       navigate('/'); // fallback
  
@@ -53,7 +56,11 @@ console.log("Login response:", response.data);
 
   } catch (error) {
     console.error('Login failed:', error);
-    alert(error.response?.data?.message || 'Login failed. Please try again.');
+    const msg = error.response?.data?.message || 'Login failed. Please try again.';
+    setError(msg);
+    alert(msg);
+  } finally {
+    setIsLoading(false);
   }
 };
 
