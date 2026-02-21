@@ -1,4 +1,5 @@
 import express from 'express'
+import axios from 'axios'
 import cors from 'cors'
 import morgan from 'morgan'
 import helmet from 'helmet'
@@ -6,12 +7,17 @@ import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
-import bookingRoutes from './routes/bookings.js'
-import dashboardRoutes from './routes/dashboard.js'
-import notificationRoutes from './routes/notifications.js'
+
+
+import patientRoutes from './routes/patients.js'
+import caretakerRoutes from './routes/caretakers.js'
+import adminRoutes from './routes/admin.js'
 import User from './models/User.js'
+import userDetailsRoutes from "./routes/userDetails.js";
+
 
 dotenv.config()
+
 
 const app = express()
 
@@ -19,6 +25,8 @@ app.use(cors())
 app.use(helmet())
 app.use(express.json())
 app.use(morgan('dev'))
+
+
 
 app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
 
@@ -40,8 +48,15 @@ app.use('/api/bookings', bookingRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/notifications', notificationRoutes)
 
+app.use('/api/patients', patientRoutes)
+app.use('/api/caretakers', caretakerRoutes)
+app.use('/api/admin', adminRoutes)
+app.use("/api/userDetails", userDetailsRoutes)
+
+
 const PORT = process.env.PORT || 4000
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/heallink'
+
 
 // Helpful connection event logs
 mongoose.connection.on('connected', () => {
@@ -74,6 +89,7 @@ mongoose
     } catch (e) {
       console.warn('Admin seed skipped:', e.message)
     }
+
 
     app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`))
   })

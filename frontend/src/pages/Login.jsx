@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { authAPI } from '../services/api'
+
+import { Link } from 'react-router-dom'
+import axios from 'axios'
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  const navigate = useNavigate()
+      const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
@@ -19,38 +21,48 @@ export default function Login() {
       ...prev,
       [name]: value
     }))
-    // Clear error when user starts typing
-    if (error) setError('')
+    setError('') // Clear error when user types
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    
-    try {
-      const response = await authAPI.login(formData.email, formData.password)
-      
-      console.log('Login successful:', response.user)
-      
-      // Redirect based on user role
-      if (response.user.role === 'patient') {
-        navigate('/patient/dashboard')
-      } else if (response.user.role === 'caretaker') {
-        navigate('/caretaker/dashboard')
-      } else if (response.user.role === 'admin') {
-        navigate('/admin/dashboard')
-      } else {
-        navigate('/')
-      }
-      
-    } catch (error) {
-      console.error('Login failed:', error)
-      setError(error.message || 'Login failed. Please check your credentials.')
-    } finally {
-      setIsLoading(false)
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+   
+    const response = await axios.post('http://localhost:4000/api/auth/login', formData);
+ 
+console.log("Login response:", response.data);
+    // Welcome message
+    alert(`✅ Welcome back, ${response.data.user.name}! Role: ${response.data.user.role}`);
+
+    // Save user info + tokens in localStorage
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    localStorage.setItem('token', response.data.accessToken || '');
+    localStorage.setItem('refreshToken', response.data.refreshToken || '');
+    localStorage.setItem("userId", response.data.user.id);
+    localStorage.setItem("role", response.data.user.role);
+
+    // ✅ Redirect based on user role
+    if (response.data.user.role === 'admin') {
+      navigate('/admin');
+    } else if (response.data.user.role === 'caretaker') {
+      navigate('/caretaker');
+    } else if (response.data.user.role === 'patient') {
+      navigate('/patient/dashboard');
+    } else {
+      navigate('/'); // fallback
+ 
     }
+
+  } catch (error) {
+    console.error('Login failed:', error);
+    const msg = error.response?.data?.message || 'Login failed. Please try again.';
+    setError(msg);
+    alert(msg);
+  } finally {
+    setIsLoading(false);
   }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex">
@@ -129,6 +141,13 @@ export default function Login() {
 
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                )}
+
                 {/* Email Field */}
                 <div>
                   <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">

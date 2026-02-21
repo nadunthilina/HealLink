@@ -4,24 +4,35 @@
   "private": true,
   "type": "module",
   "scripts": {
+
+
     "dev": "nodemon",
     "start": "node src/index.js",
     "seed": "node seed.js",
     "lint": "eslint .",
     "test": "node --test || echo 'no tests'"
+
   },
   "dependencies": {
+    "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.1",
-    "helmet": "^8.0.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.8.1",
-    "morgan": "^1.10.0"
+    "mongoose": "^8.19.3",
+    "morgan": "^1.10.1",
+    "nodeman": "^1.1.2"
   },
   "devDependencies": {
     "eslint": "^9.13.0",
-    "nodemon": "^3.1.7"
-  }
+    "nodemon": "^3.1.10"
+  },
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }
