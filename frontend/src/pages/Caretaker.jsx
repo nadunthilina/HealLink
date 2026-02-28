@@ -212,9 +212,8 @@ export default function Caretaker() {
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   const handleLogout = () => {
-    localStorage.removeItem("userId");
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+    logout(); // Use the logout from useAuth context
+    navigate("/login");
   };
 
   // ---------------- Render Functions ----------------

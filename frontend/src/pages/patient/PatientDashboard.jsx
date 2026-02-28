@@ -1,7 +1,16 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PatientDashboard() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50 p-6">
       {/* Header */}
@@ -9,7 +18,10 @@ export default function PatientDashboard() {
         <h1 className="text-3xl font-bold text-blue-700">
           Welcome, <span className="text-green-700">Patient</span>
         </h1>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+        <button
+          onClick={handleLogout}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
           Log Out
         </button>
       </header>
