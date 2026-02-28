@@ -23,24 +23,19 @@ function signTokens(user) {
   return { accessToken, refreshToken };
 }
 
-
 router.post("/register", async (req, res) => {
   try {
     const { name, email, phone, password, role } = req.body;
     if (!name || !email || !password || !role)
       return res.status(400).json({ message: "Missing fields" });
 
-
     const exists = await User.findOne({ email });
     if (exists)
       return res.status(409).json({ message: "Email already in use" });
 
-
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, phone, passwordHash, role });
     const tokens = signTokens(user);
-
- 
 
     res
       .status(201)
@@ -58,19 +53,26 @@ router.post("/login", async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
 
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    if (user.status !== 'active') return res.status(403).json({ message: 'Account inactive. Contact admin.' })
-
-    const ok = await bcrypt.compare(password, user.passwordHash)
-    if (!ok) return res.status(401).json({ message: 'Invalid credentials' })
+    if (user.status !== "active") {
+      return res
+        .status(403)
+        .json({ message: "Account inactive. Contact admin." });
+    }
 
     if (user.role !== role) {
       return res
         .status(403)
         .json({ message: `Invalid role. Registered as ${user.role}` });
     }
+
+    // Generate tokens
+    const tokens = signTokens(user);
 
     res.json({
       message: "Login successful",
@@ -80,6 +82,7 @@ router.post("/login", async (req, res) => {
         email: user.email,
         role: user.role,
       },
+      ...tokens,
     });
   } catch (err) {
     console.error("❌ Login error:", err);
@@ -118,5 +121,58 @@ router.get("/user/:id", async (req, res) => {
   }
 });
 
+// ✅ Verify token and get current user
+router.get("/verify", async (req, res) => {
+  try {
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ authenticated: false, message: "No token provided" });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.sub).select(
+      "name email role status"
+    );
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ authenticated: false, message: "User not found" });
+    }
+
+    if (user.status !== "active") {
+      return res
+        .status(403)
+        .json({ authenticated: false, message: "Account inactive" });
+    }
+
+    res.json({
+      authenticated: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res
+        .status(401)
+        .json({
+          authenticated: false,
+          expired: true,
+          message: "Token expired",
+        });
+    }
+    return res
+      .status(401)
+      .json({ authenticated: false, message: "Invalid token" });
+  }
+});
 
 export default router;
