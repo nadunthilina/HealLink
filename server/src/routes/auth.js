@@ -53,17 +53,11 @@ router.post("/login", async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
+    if (user.status !== 'active')
+      return res.status(403).json({ message: 'Account inactive. Contact admin.' });
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    if (user.status !== "active") {
-      return res
-        .status(403)
-        .json({ message: "Account inactive. Contact admin." });
-    }
+    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
 
     if (user.role !== role) {
       return res
@@ -71,18 +65,19 @@ router.post("/login", async (req, res) => {
         .json({ message: `Invalid role. Registered as ${user.role}` });
     }
 
-    // Generate tokens
+    // Create access + refresh tokens
     const tokens = signTokens(user);
 
     res.json({
-      message: "Login successful",
+      message: 'Login successful',
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
       },
-      ...tokens,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     });
   } catch (err) {
     console.error("❌ Login error:", err);
