@@ -8,12 +8,11 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    role: 'patient'
-  })
-  const [showPassword, setShowPassword] = useState(false)
-
+    email: "",
+    password: "",
+    role: "patient",
+  });
+  const [showPassword, setShowPassword] = useState(false);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -28,44 +27,27 @@ export default function Login() {
     setError("");
     setIsLoading(true);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-   
-    const response = await axios.post('http://localhost:4000/api/auth/login', formData);
- 
-console.log("Login response:", response.data);
-    // Welcome message
-    alert(`✅ Welcome back, ${response.data.user.name}! Role: ${response.data.user.role}`);
+    try {
+      const result = await login(
+        formData.email,
+        formData.password,
+        formData.role
+      );
 
-    // Save user info + tokens in localStorage
-    localStorage.setItem('user', JSON.stringify(response.data.user));
-    localStorage.setItem('token', response.data.accessToken || '');
-    localStorage.setItem('refreshToken', response.data.refreshToken || '');
-    localStorage.setItem("userId", response.data.user.id);
-    localStorage.setItem("role", response.data.user.role);
-
-    // ✅ Redirect based on user role
-    if (response.data.user.role === 'admin') {
-      navigate('/admin');
-    } else if (response.data.user.role === 'caretaker') {
-      navigate('/caretaker');
-    } else if (response.data.user.role === 'patient') {
-      navigate('/patient/dashboard');
-    } else {
-      navigate('/'); // fallback
- 
+      if (result.success) {
+        // Success! Navigate to appropriate dashboard
+        navigate(getDashboardUrl());
+      } else {
+        // Show error message
+        setError(result.message || "Login failed. Please try again.");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-
-  } catch (error) {
-    console.error('Login failed:', error);
-    const msg = error.response?.data?.message || 'Login failed. Please try again.';
-    setError(msg);
-    alert(msg);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex">
@@ -429,8 +411,8 @@ console.log("Login response:", response.data);
               </a>
             </p>
           </div>
-        </div>
+        </div>{" "}
       </div>
     </div>
   );
-}}
+}
