@@ -73,6 +73,15 @@ export default function PatientDashboard() {
               className="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400"
             />
           </div>
+
+          <div>
+  <label className="block text-gray-700 mb-1">Preferred Time</label>
+  <input
+    type="time"
+    className="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400"
+  />
+</div>
+
           <div className="md:col-span-2">
             <label className="block text-gray-700 mb-1">Additional Notes</label>
             <textarea
