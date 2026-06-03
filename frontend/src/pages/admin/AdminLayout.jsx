@@ -7,6 +7,7 @@ export default function AdminLayout() {
   const location = useLocation();
   const { logout } = useAuth();
   const [pageTitle, setPageTitle] = useState("Dashboard");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [adminUser, setAdminUser] = useState({
     name: "Admin",
     email: "",
@@ -59,9 +60,19 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
+      {/* Mobile overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" 
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* Sidebar */}
-      <div className="fixed left-0 top-0 w-64 h-screen bg-gradient-to-b from-blue-900 to-blue-800 text-white p-5 flex flex-col shadow-xl">
+      <div className={`fixed left-0 top-0 w-64 h-screen bg-gradient-to-b from-blue-900 to-blue-800 text-white p-5 flex flex-col shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0`}>
         {/* Logo */}
         <div className="flex items-center space-x-3 mb-8">
           <div className="bg-white p-2 rounded-lg">
@@ -118,6 +129,7 @@ export default function AdminLayout() {
               key={item.path}
               to={item.path}
               end={item.exact}
+              onClick={() => setIsSidebarOpen(false)}
               className={({ isActive }) =>
                 `flex items-center space-x-3 py-3 px-4 rounded-lg transition-all duration-200 ${
                   isActive
@@ -167,19 +179,29 @@ export default function AdminLayout() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className="flex-1 md:ml-64 w-full h-screen overflow-y-auto">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
           <div className="flex items-center justify-between p-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage and monitor your healthcare system
-              </p>
+            <div className="flex items-center">
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="md:hidden mr-3 p-2 rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{pageTitle}</h1>
+                <p className="hidden sm:block text-sm text-gray-500 mt-1">
+                  Manage and monitor your healthcare system
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               {/* Current Time Display */}
-              <div className="text-sm text-gray-600">
+              <div className="hidden lg:block text-sm text-gray-600">
                 {new Date().toLocaleDateString("en-US", {
                   weekday: "short",
                   year: "numeric",
