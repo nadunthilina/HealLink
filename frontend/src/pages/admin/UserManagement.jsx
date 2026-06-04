@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { usersAPI } from '../../services/api'
+import Swal from 'sweetalert2'
 
 export default function UserManagement() {
   const [users, setUsers] = useState([])
@@ -82,26 +83,63 @@ export default function UserManagement() {
       setIsModalOpen(false)
       setFormData({ name: '', email: '', phone: '', role: '', password: '', status: 'active' })
       setEditingUser(null)
+      
+      Swal.fire({
+        icon: 'success',
+        title: editingUser ? 'Updated!' : 'Created!',
+        text: `User has been successfully ${editingUser ? 'updated' : 'created'}.`,
+        timer: 2000,
+        showConfirmButton: false
+      })
     } catch (err) {
       console.error('Error saving user:', err)
-      alert(err.response?.data?.message || 'Failed to save user')
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: err.response?.data?.message || 'Failed to save user'
+      })
     }
   }
 
   const handleDelete = async (id, email) => {
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
     if (currentUser.email === email) {
-      alert('You cannot delete your own account!')
+      Swal.fire({
+        icon: 'error',
+        title: 'Action Denied',
+        text: 'You cannot delete your own account!'
+      })
       return
     }
 
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    })
+
+    if (result.isConfirmed) {
       try {
         await usersAPI.delete(id)
         await fetchUsers()
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'User has been deleted.',
+          timer: 2000,
+          showConfirmButton: false
+        })
       } catch (err) {
         console.error('Error deleting user:', err)
-        alert('Failed to delete user')
+        Swal.fire({
+          icon: 'error',
+          title: 'Delete Failed',
+          text: 'Failed to delete user'
+        })
       }
     }
   }
@@ -286,7 +324,7 @@ export default function UserManagement() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">
                 {editingUser ? 'Edit User' : 'Add User'}
@@ -343,12 +381,15 @@ export default function UserManagement() {
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded"
+                  disabled={!!editingUser}
                 >
                   <option value="">Select role</option>
-                  <option value="admin">Admin</option>
                   <option value="caretaker">Caretaker</option>
                   <option value="patient">Patient</option>
                 </select>
+                {editingUser && (
+                  <p className="text-xs text-gray-500 mt-1">Role cannot be changed</p>
+                )}
               </div>
               {editingUser && (
                 <div className="mb-4">

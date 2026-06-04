@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
+import Patient from '../models/Patient.js'
+import Caretaker from '../models/Caretaker.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
@@ -98,6 +100,13 @@ router.delete('/:id', requireAuth(['admin']), async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id)
     if (!user) return res.status(404).json({ message: 'User not found' })
+
+    if (user.role === 'patient') {
+      await Patient.findOneAndDelete({ userId: user._id })
+    } else if (user.role === 'caretaker') {
+      await Caretaker.findOneAndDelete({ userId: user._id })
+    }
+
     res.json({ message: 'User deleted successfully' })
   } catch (e) {
     console.error(e)

@@ -2,6 +2,8 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
+import Patient from "../models/Patient.js";
+import Caretaker from "../models/Caretaker.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
@@ -35,6 +37,26 @@ router.post("/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, phone, passwordHash, role });
+
+    if (role === 'patient') {
+      await Patient.create({
+        name,
+        email,
+        phone,
+        age: 0, // Default age, user should update later
+        userId: user._id,
+        status: 'active'
+      });
+    } else if (role === 'caretaker') {
+      await Caretaker.create({
+        name,
+        email,
+        phone,
+        userId: user._id,
+        status: 'active'
+      });
+    }
+
     const tokens = signTokens(user);
 
     res

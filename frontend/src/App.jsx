@@ -18,6 +18,7 @@ const PatientManagement = lazy(() =>
   import("./pages/admin/PatientManagement.jsx")
 );
 const UserManagement = lazy(() => import("./pages/admin/UserManagement.jsx"));
+const ScheduleManagement = lazy(() => import("./pages/admin/ScheduleManagement.jsx"));
 
 // 🩺 Member 5: Patient pages
 const PatientDashboard = lazy(() =>
@@ -108,6 +109,7 @@ export default function App() {
           <Route path="caretakers" element={<CaretakerManagement />} />
           <Route path="patients" element={<PatientManagement />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="schedules" element={<ScheduleManagement />} />
         </Route>
 
         {/* Protected Routes - Patient Dashboard & Caretaker Directory (Patient Only) */}

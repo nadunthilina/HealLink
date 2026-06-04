@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { caretakersAPI } from '../../services/api'
+import Swal from 'sweetalert2'
 
 export default function CaretakerManagement() {
   const [caretakers, setCaretakers] = useState([])
@@ -85,20 +86,53 @@ export default function CaretakerManagement() {
       setIsModalOpen(false)
       setFormData({ name: '', phone: '', email: '', password: '', skills: '', experience: '', certifications: '' })
       setEditingCaretaker(null)
+      
+      Swal.fire({
+        icon: 'success',
+        title: editingCaretaker ? 'Updated!' : 'Created!',
+        text: `Caretaker has been successfully ${editingCaretaker ? 'updated' : 'created'}.`,
+        timer: 2000,
+        showConfirmButton: false
+      })
     } catch (err) {
       console.error('Error saving caretaker:', err)
-      alert(err.response?.data?.message || 'Failed to save caretaker')
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: err.response?.data?.message || 'Failed to save caretaker'
+      })
     }
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this caretaker? This will also delete their user account.')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "This will also delete their user account and you won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    })
+
+    if (result.isConfirmed) {
       try {
         await caretakersAPI.delete(id)
         await fetchCaretakers()
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'Caretaker has been deleted.',
+          timer: 2000,
+          showConfirmButton: false
+        })
       } catch (err) {
         console.error('Error deleting caretaker:', err)
-        alert('Failed to delete caretaker')
+        Swal.fire({
+          icon: 'error',
+          title: 'Delete Failed',
+          text: 'Failed to delete caretaker'
+        })
       }
     }
   }
@@ -108,9 +142,20 @@ export default function CaretakerManagement() {
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active'
       await caretakersAPI.update(caretakerId, { status: newStatus })
       await fetchCaretakers()
+      Swal.fire({
+        icon: 'success',
+        title: 'Status Updated',
+        text: `Caretaker is now ${newStatus}.`,
+        timer: 1500,
+        showConfirmButton: false
+      })
     } catch (err) {
       console.error('Error toggling caretaker status:', err)
-      alert('Failed to update status')
+      Swal.fire({
+        icon: 'error',
+        title: 'Update Failed',
+        text: 'Failed to update status'
+      })
     }
   }
 
@@ -206,7 +251,7 @@ export default function CaretakerManagement() {
                           : 'bg-blue-500 hover:bg-blue-600 text-white'
                       }`}
                     >
-                      {caretaker.status === 'active' ? 'Deactivate' : 'Activate'}
+                      {caretaker.status === 'active' ? 'Set Inactive' : 'Set Active'}
                     </button>
                     <button 
                       onClick={() => handleOpenModal(caretaker)}

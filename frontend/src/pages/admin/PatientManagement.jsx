@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { patientsAPI, caretakersAPI } from '../../services/api'
+import Swal from 'sweetalert2'
 
 export default function PatientManagement() {
   const [patients, setPatients] = useState([])
@@ -16,9 +17,15 @@ export default function PatientManagement() {
     age: '',
     phone: '',
     email: '',
+    password: '',
     condition: '',
     address: '',
-    assignedCaretaker: ''
+    assignedCaretaker: '',
+    assignmentStartDate: '',
+    assignmentEndDate: '',
+    assignmentStartTime: '',
+    assignmentEndTime: '',
+    assignmentIsFullDay: false
   })
 
   useEffect(() => {
@@ -57,9 +64,15 @@ export default function PatientManagement() {
         age: patient.age.toString(),
         phone: patient.phone,
         email: patient.email || '',
+        password: '',
         condition: patient.condition || '',
         address: patient.address || '',
-        assignedCaretaker: patient.assignedCaretaker?._id || ''
+        assignedCaretaker: patient.assignedCaretaker?._id || '',
+        assignmentStartDate: patient.assignmentStartDate ? new Date(patient.assignmentStartDate).toISOString().split('T')[0] : '',
+        assignmentEndDate: patient.assignmentEndDate ? new Date(patient.assignmentEndDate).toISOString().split('T')[0] : '',
+        assignmentStartTime: patient.assignmentStartTime || '',
+        assignmentEndTime: patient.assignmentEndTime || '',
+        assignmentIsFullDay: patient.assignmentIsFullDay || false
       })
     } else {
       setEditingPatient(null)
@@ -68,9 +81,15 @@ export default function PatientManagement() {
         age: '',
         phone: '',
         email: '',
+        password: '',
         condition: '',
         address: '',
-        assignedCaretaker: ''
+        assignedCaretaker: '',
+        assignmentStartDate: '',
+        assignmentEndDate: '',
+        assignmentStartTime: '',
+        assignmentEndTime: '',
+        assignmentIsFullDay: false
       })
     }
     setIsModalOpen(true)
@@ -93,22 +112,55 @@ export default function PatientManagement() {
 
       await fetchPatients()
       setIsModalOpen(false)
-      setFormData({ name: '', age: '', phone: '', email: '', condition: '', address: '', assignedCaretaker: '' })
+      setFormData({ name: '', age: '', phone: '', email: '', password: '', condition: '', address: '', assignedCaretaker: '', assignmentStartDate: '', assignmentEndDate: '', assignmentStartTime: '', assignmentEndTime: '', assignmentIsFullDay: false })
       setEditingPatient(null)
+      
+      Swal.fire({
+        icon: 'success',
+        title: editingPatient ? 'Updated!' : 'Created!',
+        text: `Patient has been successfully ${editingPatient ? 'updated' : 'created'}.`,
+        timer: 2000,
+        showConfirmButton: false
+      })
     } catch (err) {
       console.error('Error saving patient:', err)
-      alert(err.response?.data?.message || 'Failed to save patient')
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: err.response?.data?.message || 'Failed to save patient'
+      })
     }
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this patient?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    })
+
+    if (result.isConfirmed) {
       try {
         await patientsAPI.delete(id)
         await fetchPatients()
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'Patient has been deleted.',
+          timer: 2000,
+          showConfirmButton: false
+        })
       } catch (err) {
         console.error('Error deleting patient:', err)
-        alert('Failed to delete patient')
+        Swal.fire({
+          icon: 'error',
+          title: 'Delete Failed',
+          text: 'Failed to delete patient'
+        })
       }
     }
   }
@@ -325,14 +377,32 @@ export default function PatientManagement() {
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700 mb-1">Email</label>
+                <label className="block text-gray-700 mb-1">Email *</label>
                 <input
                   type="email"
+                  required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded"
+                  disabled={!!editingPatient}
                 />
+                {editingPatient && (
+                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                )}
               </div>
+              {!editingPatient && (
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-1">Password *</label>
+                  <input
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded"
+                    placeholder="Minimum 6 characters"
+                  />
+                </div>
+              )}
               <div className="mb-4">
                 <label className="block text-gray-700 mb-1">Medical Condition</label>
                 <input
@@ -367,6 +437,63 @@ export default function PatientManagement() {
                   ))}
                 </select>
               </div>
+              {formData.assignedCaretaker && (
+                <>
+                  <div className="flex gap-4 mb-4">
+                    <div className="flex-1">
+                      <label className="block text-gray-700 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={formData.assignmentStartDate}
+                        onChange={(e) => setFormData({ ...formData, assignmentStartDate: e.target.value })}
+                        className="w-full p-2 border border-gray-300 rounded"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-gray-700 mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={formData.assignmentEndDate}
+                        onChange={(e) => setFormData({ ...formData, assignmentEndDate: e.target.value })}
+                        className="w-full p-2 border border-gray-300 rounded"
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.assignmentIsFullDay}
+                        onChange={(e) => setFormData({ ...formData, assignmentIsFullDay: e.target.checked, assignmentStartTime: '', assignmentEndTime: '' })}
+                        className="w-4 h-4 accent-blue-500"
+                      />
+                      <span className="text-gray-700">Full Day (All Day)</span>
+                    </label>
+                  </div>
+                  {!formData.assignmentIsFullDay && (
+                    <div className="flex gap-4 mb-4">
+                      <div className="flex-1">
+                        <label className="block text-gray-700 mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={formData.assignmentStartTime}
+                          onChange={(e) => setFormData({ ...formData, assignmentStartTime: e.target.value })}
+                          className="w-full p-2 border border-gray-300 rounded"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-gray-700 mb-1">End Time</label>
+                        <input
+                          type="time"
+                          value={formData.assignmentEndTime}
+                          onChange={(e) => setFormData({ ...formData, assignmentEndTime: e.target.value })}
+                          className="w-full p-2 border border-gray-300 rounded"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
               <div className="flex gap-2">
                 <button
                   type="button"

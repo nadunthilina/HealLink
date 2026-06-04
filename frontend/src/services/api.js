@@ -115,6 +115,14 @@ export const caretakersAPI = {
   delete: (id) => api.delete(`/caretakers/${id}`),
 };
 
+// Schedules API
+export const schedulesAPI = {
+  getAll: () => api.get("/schedules"),
+  create: (data) => api.post("/schedules", data),
+  update: (id, data) => api.put(`/schedules/${id}`, data),
+  delete: (id) => api.delete(`/schedules/${id}`),
+};
+
 // Admin API
 export const adminAPI = {
   getStats: () => api.get("/admin/stats"),
