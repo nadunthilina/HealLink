@@ -21,11 +21,12 @@ export default function ScheduleManagement() {
   const [formData, setFormData] = useState({
     patientId: '',
     caretakerId: '',
+    wardNo: '',
     startDate: '',
     endDate: '',
     startTime: '',
-    endTime: '',
-    isFullDay: false,
+    dayType: 'full',
+    paymentToAgency: 'unpaid',
     status: 'pending',
     notes: ''
   })
@@ -65,11 +66,12 @@ export default function ScheduleManagement() {
       setFormData({
         patientId: schedule.patientId?._id || '',
         caretakerId: schedule.caretakerId?._id || '',
+        wardNo: schedule.wardNo || '',
         startDate: new Date(schedule.startDate).toISOString().split('T')[0],
-        endDate: new Date(schedule.endDate).toISOString().split('T')[0],
+        endDate: new Date(schedule.startDate).toISOString().split('T')[0],
         startTime: schedule.startTime || '',
-        endTime: schedule.endTime || '',
-        isFullDay: schedule.isFullDay || false,
+        dayType: schedule.dayType || 'full',
+        paymentToAgency: schedule.paymentToAgency || 'unpaid',
         status: schedule.status || 'pending',
         notes: schedule.notes || ''
       })
@@ -78,11 +80,12 @@ export default function ScheduleManagement() {
       setFormData({
         patientId: '',
         caretakerId: '',
+        wardNo: '',
         startDate: '',
         endDate: '',
         startTime: '',
-        endTime: '',
-        isFullDay: false,
+        dayType: 'full',
+        paymentToAgency: 'unpaid',
         status: 'pending',
         notes: ''
       })
@@ -157,21 +160,19 @@ export default function ScheduleManagement() {
     }
   }
 
-  const isToday = (startDate, endDate) => {
+  const isToday = (startDate) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const start = new Date(startDate)
     start.setHours(0, 0, 0, 0)
-    const end = new Date(endDate)
-    end.setHours(23, 59, 59, 999)
-    return today >= start && today <= end
+    return today.getTime() === start.getTime()
   }
 
   // Filter Logic
   let filteredSchedules = schedules
 
   if (filterToday) {
-    filteredSchedules = filteredSchedules.filter(s => isToday(s.startDate, s.endDate))
+    filteredSchedules = filteredSchedules.filter(s => isToday(s.startDate))
   }
 
   if (statusFilter !== 'all') {
@@ -182,7 +183,11 @@ export default function ScheduleManagement() {
     const q = searchQuery.toLowerCase()
     filteredSchedules = filteredSchedules.filter(s => 
       (s.patientId?.name || '').toLowerCase().includes(q) ||
+      (s.patientId?.patientId || '').toLowerCase().includes(q) ||
+      (s.patientId?.phone || '').includes(q) ||
       (s.caretakerId?.name || '').toLowerCase().includes(q) ||
+      (s.caretakerId?.caretakerId || '').toLowerCase().includes(q) ||
+      (s.caretakerId?.phone || '').includes(q) ||
       (s.notes || '').toLowerCase().includes(q)
     )
   }
@@ -194,17 +199,8 @@ export default function ScheduleManagement() {
     currentPage * itemsPerPage
   )
 
-  const formatDateRange = (startDate, endDate) => {
-    const s = new Date(startDate).toLocaleDateString()
-    const e = new Date(endDate).toLocaleDateString()
-    return s === e ? s : `${s} – ${e}`
-  }
-
-  const formatTimeRange = (startTime, endTime, isFullDay) => {
-    if (isFullDay) return 'Full Day'
-    if (startTime && endTime) return `${startTime} – ${endTime}`
-    if (startTime) return `From ${startTime}`
-    return 'Time not set'
+  const formatTimeRange = (startTime, dayType) => {
+    return dayType === 'full' ? 'Full Day (24h)' : `Half Day (12h) from ${startTime}`
   }
 
   if (loading) {
@@ -246,7 +242,7 @@ export default function ScheduleManagement() {
         <div className="flex-1 min-w-[200px]">
           <input
             type="text"
-            placeholder="Search by patient, caretaker, or notes..."
+            placeholder="Search by Patient/Caretaker ID, name, or phone..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value)
@@ -303,16 +299,16 @@ export default function ScheduleManagement() {
               {displayedSchedules.map((schedule) => (
                 <tr key={schedule._id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <div className="font-medium">{formatDateRange(schedule.startDate, schedule.endDate)}</div>
-                    {isToday(schedule.startDate, schedule.endDate) && (
+                    <div className="font-medium">{new Date(schedule.startDate).toLocaleDateString()}</div>
+                    {isToday(schedule.startDate) && (
                       <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Active Today</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {formatTimeRange(schedule.startTime, schedule.endTime, schedule.isFullDay)}
+                    {formatTimeRange(schedule.startTime, schedule.dayType)}
                   </td>
-                  <td className="px-4 py-3">{schedule.patientId?.name || 'Unknown'}</td>
-                  <td className="px-4 py-3">{schedule.caretakerId?.name || 'Unknown'}</td>
+                  <td className="px-4 py-3">{schedule.patientId?.patientId}</td>
+                  <td className="px-4 py-3">{schedule.caretakerId?.caretakerId}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       schedule.status === 'completed' ? 'bg-green-100 text-green-800' :
@@ -322,9 +318,21 @@ export default function ScheduleManagement() {
                       {schedule.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => handleOpenModal(schedule)} className="bg-green-500 text-white px-3 py-1 rounded mr-2 hover:bg-green-600">Edit</button>
-                    <button onClick={() => handleDelete(schedule._id)} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Delete</button>
+                  <td className="px-4 py-3 flex gap-2">
+                    <button 
+                      onClick={() => navigate(`/admin/patients/${schedule.patientId?._id}`)} 
+                      className="bg-purple-500 text-white px-3 py-1 rounded mr-2 hover:bg-purple-600"
+                    >
+                      View
+                    </button>
+                    {schedule.status === 'pending' ? (
+                      <>
+                        <button onClick={() => handleOpenModal(schedule)} className="bg-green-500 text-white px-3 py-1 rounded mr-2 hover:bg-green-600">Edit</button>
+                        <button onClick={() => handleDelete(schedule._id)} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Delete</button>
+                      </>
+                    ) : (
+                      <span className="text-gray-400 text-xs italic mt-1 inline-block">Locked</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -383,123 +391,144 @@ export default function ScheduleManagement() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">{editingSchedule ? 'Edit Schedule' : 'New Schedule'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-2xl hover:text-gray-700">&times;</button>
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center mb-5 pb-3 border-b">
+              <h3 className="text-xl font-bold text-gray-800">{editingSchedule ? '✏️ Edit Schedule' : '📅 New Schedule'}</h3>
+              <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-red-100 hover:text-red-500 transition-colors">&times;</button>
             </div>
             
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-1">Patient *</label>
-                <select
-                  required
-                  value={formData.patientId}
-                  onChange={(e) => setFormData({...formData, patientId: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="">Select Patient</option>
-                  {patients.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-1">Caretaker *</label>
-                <select
-                  required
-                  value={formData.caretakerId}
-                  onChange={(e) => setFormData({...formData, caretakerId: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="">Select Caretaker</option>
-                  {caretakers.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
-              </div>
-
-              <div className="flex gap-4 mb-4">
-                <div className="flex-1">
-                  <label className="block text-gray-700 mb-1">Start Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Patient & Caretaker Section */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Assignment</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Patient *</label>
+                    <input
+                      type="text"
+                      required
+                      list="patientsList"
+                      placeholder="Search by ID..."
+                      value={
+                        patients.find(p => p._id === formData.patientId)?.patientId || formData.patientId
+                      }
+                      onChange={(e) => {
+                        const selected = patients.find(p => p.patientId === e.target.value || p._id === e.target.value)
+                        setFormData({...formData, patientId: selected ? selected._id : e.target.value})
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                    <datalist id="patientsList">
+                      {patients.map(p => <option key={p._id} value={p.patientId}>{p.name}</option>)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Caretaker *</label>
+                    <input
+                      type="text"
+                      required
+                      list="caretakersList"
+                      placeholder="Search by ID..."
+                      value={
+                        caretakers.find(c => c._id === formData.caretakerId)?.caretakerId || formData.caretakerId
+                      }
+                      onChange={(e) => {
+                        const selected = caretakers.find(c => c.caretakerId === e.target.value || c._id === e.target.value)
+                        setFormData({...formData, caretakerId: selected ? selected._id : e.target.value})
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                    <datalist id="caretakersList">
+                      {caretakers
+                        .filter(c => {
+                          if (!formData.patientId) return true
+                          const patient = patients.find(p => p._id === formData.patientId)
+                          return patient ? c.gender === patient.gender : true
+                        })
+                        .map(c => <option key={c._id} value={c.caretakerId}>{c.name}</option>)}
+                    </datalist>
+                    {formData.patientId && <p className="text-xs text-blue-500 mt-1">Filtered by patient's gender</p>}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <label className="block text-gray-700 mb-1">End Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  />
-                </div>
               </div>
 
-              <div className="mb-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isFullDay}
-                    onChange={(e) => setFormData({...formData, isFullDay: e.target.checked, startTime: '', endTime: ''})}
-                    className="w-4 h-4 accent-blue-500"
-                  />
-                  <span className="text-gray-700">Full Day (All Day)</span>
-                </label>
-              </div>
-
-              {!formData.isFullDay && (
-                <div className="flex gap-4 mb-4">
-                  <div className="flex-1">
-                    <label className="block text-gray-700 mb-1">Start Time</label>
+              {/* Schedule Details Section */}
+              <div className="bg-blue-50 rounded-lg p-4 space-y-3 border border-blue-100">
+                <h4 className="text-sm font-semibold text-blue-700 uppercase tracking-wider">📆 Schedule Details</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                    <input
+                      type="date"
+                      required
+                      min={new Date().toISOString().split('T')[0]}
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date {!editingSchedule && '*'}</label>
+                    <input
+                      type="date"
+                      required={!editingSchedule}
+                      min={formData.startDate || new Date().toISOString().split('T')[0]}
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                      disabled={!!editingSchedule}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
                     <input
                       type="time"
+                      required
                       value={formData.startTime}
                       onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-                      className="w-full p-2 border border-gray-300 rounded"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-gray-700 mb-1">End Time</label>
-                    <input
-                      type="time"
-                      value={formData.endTime}
-                      onChange={(e) => setFormData({...formData, endTime: e.target.value})}
-                      className="w-full p-2 border border-gray-300 rounded"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
-              )}
-
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-1">Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ward No</label>
+                    <input
+                      type="text"
+                      value={formData.wardNo}
+                      onChange={(e) => setFormData({...formData, wardNo: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Day Type *</label>
+                    <select
+                      value={formData.dayType}
+                      onChange={(e) => setFormData({...formData, dayType: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    >
+                      <option value="full">Full Day (24h)</option>
+                      <option value="half">Half Day (12h)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Agency Payment</label>
+                    <select
+                      value={formData.paymentToAgency}
+                      onChange={(e) => setFormData({...formData, paymentToAgency: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    >
+                      <option value="unpaid">Unpaid</option>
+                      <option value="paid">Paid</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-1">Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  rows="3"
-                ></textarea>
-              </div>
-
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400">Cancel</button>
-                <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">{editingSchedule ? 'Update' : 'Add'}</button>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm">{editingSchedule ? 'Update Schedule' : 'Create Schedule'}</button>
               </div>
             </form>
           </div>

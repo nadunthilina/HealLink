@@ -19,6 +19,11 @@ const PatientManagement = lazy(() =>
 );
 const UserManagement = lazy(() => import("./pages/admin/UserManagement.jsx"));
 const ScheduleManagement = lazy(() => import("./pages/admin/ScheduleManagement.jsx"));
+const CaretakerProfile = lazy(() => import("./pages/admin/CaretakerProfile.jsx"));
+const PatientProfile = lazy(() => import("./pages/admin/PatientProfile.jsx"));
+const Settings = lazy(() => import("./pages/admin/Settings.jsx"));
+
+import SudoGuard from "./components/SudoGuard.jsx";
 
 // 🩺 Member 5: Patient pages
 const PatientDashboard = lazy(() =>
@@ -108,8 +113,11 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="caretakers" element={<CaretakerManagement />} />
           <Route path="patients" element={<PatientManagement />} />
-          <Route path="users" element={<UserManagement />} />
+          <Route path="users" element={<SudoGuard><UserManagement /></SudoGuard>} />
           <Route path="schedules" element={<ScheduleManagement />} />
+          <Route path="settings" element={<SudoGuard><Settings /></SudoGuard>} />
+          <Route path="caretakers/:id" element={<CaretakerProfile />} />
+          <Route path="patients/:id" element={<PatientProfile />} />
         </Route>
 
         {/* Protected Routes - Patient Dashboard & Caretaker Directory (Patient Only) */}

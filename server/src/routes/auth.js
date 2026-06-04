@@ -2,6 +2,7 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
+import { requireAuth } from "../middleware/auth.js";
 import Patient from "../models/Patient.js";
 import Caretaker from "../models/Caretaker.js";
 
@@ -189,6 +190,26 @@ router.get("/verify", async (req, res) => {
     return res
       .status(401)
       .json({ authenticated: false, message: "Invalid token" });
+  }
+});
+
+// ✅ Verify password for Sudo Mode
+router.post("/verify-password", requireAuth(), async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+
+    const ownerPassword = process.env.OWNER_PASSWORD || "Owner@HealLink2026";
+    if (password !== ownerPassword) {
+      return res.status(401).json({ message: "Incorrect password" });
+    }
+
+    res.json({ success: true, message: "Password verified" });
+  } catch (error) {
+    console.error("Password verification error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

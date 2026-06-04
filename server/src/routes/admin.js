@@ -29,10 +29,21 @@ router.get('/stats', requireAuth(['admin']), async (req, res) => {
     const endOfDay = new Date()
     endOfDay.setHours(23, 59, 59, 999)
 
-    const todaySchedules = await Schedule.countDocuments({
-      startDate: { $lte: endOfDay },
-      endDate: { $gte: startOfDay }
+    const startOfYesterday = new Date()
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1)
+    startOfYesterday.setHours(0, 0, 0, 0)
+    
+    const recentSchedules = await Schedule.find({
+      startDate: { $gte: startOfYesterday, $lte: endOfDay },
+      status: { $ne: 'cancelled' }
     })
+
+    const todaySchedules = recentSchedules.filter(s => {
+      const start = new Date(`${new Date(s.startDate).toISOString().split('T')[0]}T${s.startTime}:00`)
+      const hoursToAdd = s.dayType === 'full' ? 24 : 12
+      const end = new Date(start.getTime() + hoursToAdd * 60 * 60 * 1000)
+      return end >= startOfDay && start <= endOfDay
+    }).length
 
     res.json({
       totalUsers,

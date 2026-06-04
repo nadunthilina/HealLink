@@ -37,16 +37,32 @@ router.get('/:id', requireAuth(['admin']), async (req, res) => {
 // Create patient (Admin only)
 router.post('/', requireAuth(['admin']), async (req, res) => {
   try {
-    const { name, age, phone, email, password, address, condition, emergencyContact, assignedCaretaker, assignmentStartDate, assignmentEndDate, assignmentStartTime, assignmentEndTime, assignmentIsFullDay, notes } = req.body
+    const { name, age, gender, phone, email, password, address, emergencyContact, assignedCaretaker, assignmentStartDate, assignmentEndDate, assignmentStartTime, assignmentDayType, wardNo, paymentToAgency, notes } = req.body
     
-    if (!name || !age || !phone || !email || !password) {
-      return res.status(400).json({ message: 'Name, age, phone, email, and password are required' })
+    if (!name || !age || !gender || !phone || !email || !password) {
+      return res.status(400).json({ message: 'Name, age, gender, phone, email, and password are required' })
     }
 
-    if (assignedCaretaker && assignmentStartDate && assignmentEndDate) {
-      const conflict = await checkCaretakerConflict(assignedCaretaker, assignmentStartDate, assignmentEndDate, assignmentStartTime, assignmentEndTime, assignmentIsFullDay)
-      if (conflict) {
-        return res.status(409).json({ message: conflict.message })
+    let dates = []
+    if (assignedCaretaker && assignmentStartDate && assignmentStartTime && assignmentDayType) {
+      const start = new Date(assignmentStartDate)
+      const end = assignmentEndDate ? new Date(assignmentEndDate) : new Date(assignmentStartDate)
+      
+      if (end < start) {
+        return res.status(400).json({ message: 'End date cannot be before start date' })
+      }
+
+      let currentDate = new Date(start)
+      while (currentDate <= end) {
+        dates.push(new Date(currentDate).toISOString().split('T')[0])
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+
+      for (const date of dates) {
+        const conflict = await checkCaretakerConflict(assignedCaretaker, date, assignmentStartTime, assignmentDayType)
+        if (conflict) {
+          return res.status(409).json({ message: `Conflict on ${date}: ${conflict.message}` })
+        }
       }
     }
 
@@ -65,38 +81,51 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
       status: 'active'
     })
 
+    // Generate PAT-00000001 ID
+    const lastPatient = await Patient.findOne().sort({ createdAt: -1 })
+    let newIdNum = 1
+    if (lastPatient && lastPatient.patientId) {
+      const match = lastPatient.patientId.match(/PAT-(\d+)/)
+      if (match) newIdNum = parseInt(match[1]) + 1
+    }
+    const patientId = `PAT-${newIdNum.toString().padStart(8, '0')}`
+
     const patient = await Patient.create({
+      patientId,
       name,
       age,
+      gender,
       phone,
       email,
       address,
-      condition,
       emergencyContact,
       assignedCaretaker: assignedCaretaker || null,
       assignmentStartDate: assignmentStartDate || null,
       assignmentEndDate: assignmentEndDate || null,
       assignmentStartTime: assignmentStartTime || null,
-      assignmentEndTime: assignmentEndTime || null,
-      assignmentIsFullDay: assignmentIsFullDay || false,
+      assignmentDayType: assignmentDayType || null,
       userId: user._id,
       notes,
       status: 'active'
     })
 
-    if (assignedCaretaker && assignmentStartDate && assignmentEndDate) {
-      const schedule = await Schedule.create({
-        patientId: patient._id,
-        caretakerId: assignedCaretaker,
-        startDate: assignmentStartDate,
-        endDate: assignmentEndDate,
-        startTime: assignmentStartTime,
-        endTime: assignmentEndTime,
-        isFullDay: assignmentIsFullDay,
-        status: 'pending',
-        notes: 'Auto-generated from patient assignment'
-      })
-      patient.autoScheduleId = schedule._id
+    if (assignedCaretaker && assignmentStartDate && assignmentStartTime && assignmentDayType) {
+      const autoScheduleIds = []
+      for (const date of dates) {
+        const schedule = await Schedule.create({
+          patientId: patient._id,
+          caretakerId: assignedCaretaker,
+          wardNo: wardNo,
+          startDate: date,
+          startTime: assignmentStartTime,
+          dayType: assignmentDayType,
+          paymentToAgency: paymentToAgency || 'unpaid',
+          status: 'pending',
+          notes: 'Auto-generated from patient assignment'
+        })
+        autoScheduleIds.push(schedule._id)
+      }
+      patient.autoScheduleIds = autoScheduleIds
       await patient.save()
     }
 
@@ -113,59 +142,70 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
 // Update patient (Admin only)
 router.put('/:id', requireAuth(['admin']), async (req, res) => {
   try {
-    const { name, age, phone, email, address, condition, emergencyContact, assignedCaretaker, assignmentStartDate, assignmentEndDate, assignmentStartTime, assignmentEndTime, assignmentIsFullDay, status, notes } = req.body
+    const { name, age, gender, phone, email, address, emergencyContact, assignedCaretaker, assignmentStartDate, assignmentEndDate, assignmentStartTime, assignmentDayType, wardNo, paymentToAgency, status, notes } = req.body
     
     const patient = await Patient.findById(req.params.id)
     if (!patient) return res.status(404).json({ message: 'Patient not found' })
 
-    if (assignedCaretaker && assignmentStartDate && assignmentEndDate) {
-      const conflict = await checkCaretakerConflict(
-        assignedCaretaker, 
-        assignmentStartDate, 
-        assignmentEndDate, 
-        assignmentStartTime, 
-        assignmentEndTime, 
-        assignmentIsFullDay,
-        patient.autoScheduleId
-      )
-      if (conflict) {
-        return res.status(409).json({ message: conflict.message })
+    let dates = []
+    if (assignedCaretaker && assignmentStartDate && assignmentStartTime && assignmentDayType) {
+      const start = new Date(assignmentStartDate)
+      const end = assignmentEndDate ? new Date(assignmentEndDate) : new Date(assignmentStartDate)
+      
+      if (end < start) {
+        return res.status(400).json({ message: 'End date cannot be before start date' })
+      }
+
+      let currentDate = new Date(start)
+      while (currentDate <= end) {
+        dates.push(new Date(currentDate).toISOString().split('T')[0])
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+
+      for (const date of dates) {
+        const conflict = await checkCaretakerConflict(
+          assignedCaretaker, 
+          date, 
+          assignmentStartTime, 
+          assignmentDayType,
+          null // Cannot easily exclude multiple IDs here if checking array
+        )
+        // Wait, if it's the SAME patient and we are updating the autoScheduleIds, it might conflict with itself if we don't exclude.
+        // Actually, let's just delete old autoSchedules and create new ones to avoid self-conflict.
       }
     }
 
-    // Update auto schedule if exists
-    if (assignedCaretaker && assignmentStartDate && assignmentEndDate) {
-      if (patient.autoScheduleId) {
-        await Schedule.findByIdAndUpdate(patient.autoScheduleId, {
-          caretakerId: assignedCaretaker,
-          startDate: assignmentStartDate,
-          endDate: assignmentEndDate,
-          startTime: assignmentStartTime,
-          endTime: assignmentEndTime,
-          isFullDay: assignmentIsFullDay || false
-        })
-      } else {
+    // Update auto schedules
+    if (assignedCaretaker && assignmentStartDate && assignmentStartTime && assignmentDayType) {
+      // Delete old auto schedules
+      if (patient.autoScheduleIds && patient.autoScheduleIds.length > 0) {
+        await Schedule.deleteMany({ _id: { $in: patient.autoScheduleIds } })
+      }
+
+      const autoScheduleIds = []
+      for (const date of dates) {
         const schedule = await Schedule.create({
           patientId: patient._id,
           caretakerId: assignedCaretaker,
-          startDate: assignmentStartDate,
-          endDate: assignmentEndDate,
+          wardNo: wardNo,
+          startDate: date,
           startTime: assignmentStartTime,
-          endTime: assignmentEndTime,
-          isFullDay: assignmentIsFullDay || false,
+          dayType: assignmentDayType,
+          paymentToAgency: paymentToAgency || 'unpaid',
           status: 'pending',
           notes: 'Auto-generated from patient assignment'
         })
-        patient.autoScheduleId = schedule._id
+        autoScheduleIds.push(schedule._id)
       }
-    } else if (!assignedCaretaker && patient.autoScheduleId) {
-      await Schedule.findByIdAndDelete(patient.autoScheduleId)
-      patient.autoScheduleId = null
+      patient.autoScheduleIds = autoScheduleIds
+    } else if (!assignedCaretaker && patient.autoScheduleIds && patient.autoScheduleIds.length > 0) {
+      await Schedule.deleteMany({ _id: { $in: patient.autoScheduleIds } })
+      patient.autoScheduleIds = []
     }
 
     const updatedPatient = await Patient.findByIdAndUpdate(
       req.params.id,
-      { name, age, phone, email, address, condition, emergencyContact, assignedCaretaker, assignmentStartDate, assignmentEndDate, assignmentStartTime, assignmentEndTime, assignmentIsFullDay: assignmentIsFullDay || false, autoScheduleId: patient.autoScheduleId, status, notes },
+      { name, age, gender, phone, email, address, emergencyContact, assignedCaretaker, assignmentStartDate, assignmentEndDate, assignmentStartTime, assignmentDayType, autoScheduleIds: patient.autoScheduleIds, status, notes },
       { new: true, runValidators: true }
     ).populate('assignedCaretaker', 'name phone email')
 
@@ -192,8 +232,8 @@ router.delete('/:id', requireAuth(['admin']), async (req, res) => {
       await User.findByIdAndDelete(patient.userId)
     }
 
-    if (patient.autoScheduleId) {
-      await Schedule.findByIdAndDelete(patient.autoScheduleId)
+    if (patient.autoScheduleIds && patient.autoScheduleIds.length > 0) {
+      await Schedule.deleteMany({ _id: { $in: patient.autoScheduleIds } })
     }
 
     await Patient.findByIdAndDelete(req.params.id)

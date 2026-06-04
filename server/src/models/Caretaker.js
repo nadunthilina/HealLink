@@ -2,7 +2,10 @@ import mongoose from 'mongoose'
 
 const caretakerSchema = new mongoose.Schema(
   {
+    caretakerId: { type: String, unique: true }, // Format: CARE-0001
     name: { type: String, required: true },
+    age: { type: Number, required: true },
+    gender: { type: String, enum: ['male', 'female'], required: true },
     phone: { type: String, required: true },
     email: { type: String, required: true },
     skills: { type: String }, // e.g., "Elderly Care, Physical Therapy"

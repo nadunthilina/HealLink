@@ -12,8 +12,21 @@ router.get('/', requireAuth(['admin']), async (req, res) => {
   try {
     const { role } = req.query
     const filter = role ? { role } : {}
-    const users = await User.find(filter).select('-passwordHash').sort({ createdAt: -1 })
-    res.json(users)
+    const users = await User.find(filter).select('-passwordHash').sort({ createdAt: -1 }).lean()
+    
+    const enrichedUsers = await Promise.all(users.map(async (user) => {
+      let customId = `USR-${user._id.toString().slice(-6).toUpperCase()}`
+      if (user.role === 'patient') {
+        const p = await Patient.findOne({ userId: user._id }).lean()
+        if (p?.patientId) customId = p.patientId
+      } else if (user.role === 'caretaker') {
+        const c = await Caretaker.findOne({ userId: user._id }).lean()
+        if (c?.caretakerId) customId = c.caretakerId
+      }
+      return { ...user, customId }
+    }))
+    
+    res.json(enrichedUsers)
   } catch (e) {
     console.error(e)
     res.status(500).json({ message: 'Server error' })

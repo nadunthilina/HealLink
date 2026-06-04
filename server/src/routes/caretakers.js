@@ -37,10 +37,10 @@ router.get('/:id', requireAuth(['admin']), async (req, res) => {
 // Create caretaker (Admin only) - Creates both User and Caretaker
 router.post('/', requireAuth(['admin']), async (req, res) => {
   try {
-    const { name, phone, email, password, skills, experience, certifications } = req.body
+    const { name, phone, email, password, age, gender, skills, experience, certifications } = req.body
     
-    if (!name || !phone || !email || !password) {
-      return res.status(400).json({ message: 'Name, phone, email, and password are required' })
+    if (!name || !phone || !email || !password || !age || !gender) {
+      return res.status(400).json({ message: 'Name, phone, email, password, age, and gender are required' })
     }
 
     // Check if email already exists
@@ -60,9 +60,21 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
       status: 'active'
     })
 
+    // Generate CARE-XXXX ID
+    const lastCaretaker = await Caretaker.findOne().sort({ createdAt: -1 })
+    let newIdNum = 1
+    if (lastCaretaker && lastCaretaker.caretakerId) {
+      const match = lastCaretaker.caretakerId.match(/CARE-(\d+)/)
+      if (match) newIdNum = parseInt(match[1]) + 1
+    }
+    const caretakerId = `CARE-${newIdNum.toString().padStart(4, '0')}`
+
     // Create Caretaker profile
     const caretaker = await Caretaker.create({
+      caretakerId,
       name,
+      age,
+      gender,
       phone,
       email,
       skills,
@@ -86,11 +98,11 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
 // Update caretaker (Admin only)
 router.put('/:id', requireAuth(['admin']), async (req, res) => {
   try {
-    const { name, phone, email, skills, experience, certifications, availability, status } = req.body
+    const { name, phone, email, age, gender, skills, experience, certifications, availability, status } = req.body
     
     const caretaker = await Caretaker.findByIdAndUpdate(
       req.params.id,
-      { name, phone, email, skills, experience, certifications, availability, status },
+      { name, phone, email, age, gender, skills, experience, certifications, availability, status },
       { new: true, runValidators: true }
     ).populate('userId', 'email status')
 

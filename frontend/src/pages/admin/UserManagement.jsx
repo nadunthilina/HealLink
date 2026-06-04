@@ -144,12 +144,16 @@ export default function UserManagement() {
     }
   }
 
-  const filteredUsers = users.filter(u =>
-    (u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.role.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (roleFilter === 'all' || u.role === roleFilter)
-  )
+  const filteredUsers = users.filter(u => {
+    const q = searchQuery.toLowerCase()
+    const matchesSearch = !searchQuery ||
+      u.name.toLowerCase().includes(q) ||
+      (u.customId || '').toLowerCase().includes(q) ||
+      (u.phone || '').toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q)
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter
+    return matchesSearch && matchesRole
+  })
 
   if (loading) {
     return (
@@ -181,7 +185,7 @@ export default function UserManagement() {
         <div className="flex items-center gap-4 mb-4">
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search by ID, name, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 p-2 border border-gray-300 rounded"
@@ -217,8 +221,9 @@ export default function UserManagement() {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
+                <th className="px-4 py-3 text-left text-gray-700 font-medium">User ID</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Name</th>
-                <th className="px-4 py-3 text-left text-gray-700 font-medium">Email</th>
+                <th className="px-4 py-3 text-left text-gray-700 font-medium">Phone No</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Role</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Status</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Actions</th>
@@ -229,8 +234,9 @@ export default function UserManagement() {
                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                 .map(user => (
                 <tr key={user._id} className="border-t hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-blue-600">{user.customId || `USR-${user._id.slice(-6).toUpperCase()}`}</td>
                   <td className="px-4 py-3">{user.name}</td>
-                  <td className="px-4 py-3">{user.email}</td>
+                  <td className="px-4 py-3">{user.phone || 'N/A'}</td>
                   <td className="px-4 py-3 capitalize">{user.role}</td>
                   <td className="px-4 py-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${

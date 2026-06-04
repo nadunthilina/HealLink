@@ -82,6 +82,7 @@ export const authAPI = {
   register: (data) => api.post("/auth/register", data),
   refresh: (refreshToken) => api.post("/auth/refresh", { refreshToken }),
   verifyToken: () => api.get("/auth/verify"),
+  verifyPassword: (password) => api.post("/auth/verify-password", { password }),
   getUser: (userId) => api.get(`/auth/user/${userId}`),
 };
 
@@ -126,6 +127,13 @@ export const schedulesAPI = {
 // Admin API
 export const adminAPI = {
   getStats: () => api.get("/admin/stats"),
+};
+
+// Settings API
+export const settingsAPI = {
+  getAll: () => api.get("/settings"),
+  getRates: () => api.get("/settings/rates"),
+  update: (data) => api.put("/settings", data),
 };
 
 // User Details API
