@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 /**
  * ProtectedRoute Component
@@ -10,17 +10,10 @@ import { useEffect, useState } from "react";
  * @returns {ReactNode} - Protected content or redirect
  */
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
-  const [isChecking, setIsChecking] = useState(true);
-  const token = localStorage.getItem("token");
-  const userStr = localStorage.getItem("user");
-
-  useEffect(() => {
-    // Simulate async check (you can add API verification here)
-    setIsChecking(false);
-  }, []);
+  const { user, isAuthenticated, loading } = useAuth();
 
   // Show loading state while checking
-  if (isChecking) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -29,46 +22,22 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   }
 
   // Not authenticated - redirect to login
-  if (!token || !userStr) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  try {
-    const user = JSON.parse(userStr);
-
-    // Check if user role is valid
-    if (!user.role) {
-      localStorage.clear();
-      return <Navigate to="/login" replace />;
-    }
-
-    // Check if user has required role
-    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-      // Redirect to user's correct dashboard based on their role
-      const redirectPath = getRoleDashboard(user.role);
-      return <Navigate to={redirectPath} replace />;
-    }
-
-    // User is authenticated and authorized
-    return children;
-  } catch (error) {
-    // Invalid user data in localStorage
-    console.error("Invalid user data:", error);
-    localStorage.clear();
-    return <Navigate to="/login" replace />;
+  // Check if user has required role
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    // Redirect to user's correct dashboard based on their role
+    const dashboards = {
+      admin: "/admin",
+      caretaker: "/caretaker",
+      patient: "/patient/dashboard",
+    };
+    const redirectPath = dashboards[user.role] || "/login";
+    return <Navigate to={redirectPath} replace />;
   }
-}
 
-/**
- * Get the dashboard path for a given role
- * @param {string} role - User role
- * @returns {string} - Dashboard path
- */
-function getRoleDashboard(role) {
-  const dashboards = {
-    admin: "/admin",
-    caretaker: "/caretaker",
-    patient: "/patient/dashboard",
-  };
-  return dashboards[role] || "/login";
+  // User is authenticated and authorized
+  return children;
 }

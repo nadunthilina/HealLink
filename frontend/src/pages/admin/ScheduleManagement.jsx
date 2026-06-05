@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { schedulesAPI, patientsAPI, caretakersAPI } from '../../services/api'
 import Swal from 'sweetalert2'
 
@@ -10,6 +11,7 @@ export default function ScheduleManagement() {
   const [error, setError] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState(null)
+  const navigate = useNavigate()
   
   // Filtering & Pagination State
   const [filterToday, setFilterToday] = useState(false)
@@ -318,21 +320,33 @@ export default function ScheduleManagement() {
                       {schedule.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <button 
-                      onClick={() => navigate(`/admin/patients/${schedule.patientId?._id}`)} 
-                      className="bg-purple-500 text-white px-3 py-1 rounded mr-2 hover:bg-purple-600"
-                    >
-                      View
-                    </button>
-                    {schedule.status === 'pending' ? (
-                      <>
-                        <button onClick={() => handleOpenModal(schedule)} className="bg-green-500 text-white px-3 py-1 rounded mr-2 hover:bg-green-600">Edit</button>
-                        <button onClick={() => handleDelete(schedule._id)} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Delete</button>
-                      </>
-                    ) : (
-                      <span className="text-gray-400 text-xs italic mt-1 inline-block">Locked</span>
-                    )}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => navigate(`/admin/patients/${schedule.patientId?._id}`)} 
+                        className="bg-purple-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-purple-600 transition-colors shadow-sm"
+                      >
+                        View
+                      </button>
+                      {schedule.status === 'pending' ? (
+                        <>
+                          <button 
+                            onClick={() => handleOpenModal(schedule)} 
+                            className="bg-green-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-600 transition-colors shadow-sm"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(schedule._id)} 
+                            className="bg-red-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-red-600 transition-colors shadow-sm"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-gray-400 text-xs italic bg-gray-100 px-3 py-1.5 rounded border border-gray-200">Locked</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -461,22 +475,20 @@ export default function ScheduleManagement() {
                     <input
                       type="date"
                       required
-                      min={new Date().toISOString().split('T')[0]}
+                      min={!editingSchedule ? new Date().toISOString().split('T')[0] : undefined}
                       value={formData.startDate}
                       onChange={(e) => setFormData({...formData, startDate: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date {!editingSchedule && '*'}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                     <input
                       type="date"
-                      required={!editingSchedule}
-                      min={formData.startDate || new Date().toISOString().split('T')[0]}
+                      min={formData.startDate || (!editingSchedule ? new Date().toISOString().split('T')[0] : undefined)}
                       value={formData.endDate}
                       onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
-                      disabled={!!editingSchedule}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div>
