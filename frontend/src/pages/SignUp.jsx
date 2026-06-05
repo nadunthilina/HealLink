@@ -9,7 +9,8 @@ export default function SignUp() {
     name: "",
     email: "",
     phone: "",
-    role: "patient",
+    age: "",
+    gender: "",
     password: "",
     confirmPassword: "",
   });
@@ -44,6 +45,16 @@ export default function SignUp() {
       newErrors.phone = "Phone number is required";
     } else if (!/^(\+94|0)[0-9]{9}$/.test(formData.phone.replace(/\s/g, ""))) {
       newErrors.phone = "Please enter a valid Sri Lankan phone number";
+    }
+
+    if (!formData.age) {
+      newErrors.age = "Age is required";
+    } else if (isNaN(formData.age) || Number(formData.age) <= 0 || Number(formData.age) > 120) {
+      newErrors.age = "Please enter a valid age";
+    }
+
+    if (!formData.gender) {
+      newErrors.gender = "Gender is required";
     }
 
     if (!formData.password) {
@@ -165,71 +176,48 @@ export default function SignUp() {
               )}
             </div>
 
-            {/* Role Selection */}
+            {/* Age */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                I am a *
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Age *
               </label>
-              <div className="space-y-3">
-                {[
-                  {
-                    value: "patient",
-                    label: "Patient/Family Member",
-                    icon: "👨‍👩‍👧‍👦",
-                    desc: "Looking for caretaker services",
-                  },
-                  {
-                    value: "caretaker",
-                    label: "Professional Caretaker",
-                    icon: "👩‍⚕️",
-                    desc: "Providing care services",
-                  },
-                ].map((role) => (
-                  <label
-                    key={role.value}
-                    className="flex items-center cursor-pointer"
-                  >
-                    <input
-                      type="radio"
-                      name="role"
-                      value={role.value}
-                      checked={formData.role === role.value}
-                      onChange={handleChange}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`flex items-center w-full p-4 border-2 rounded-xl transition-all ${
-                        formData.role === role.value
-                          ? "border-primary bg-blue-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="text-2xl mr-3">{role.icon}</div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900">
-                          {role.label}
-                        </div>
-                        <div className="text-sm text-gray-600">{role.desc}</div>
-                      </div>
-                      {formData.role === role.value && (
-                        <div className="text-primary">
-                          <svg
-                            className="w-6 h-6"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  </label>
-                ))}
-              </div>
+              <input
+                type="number"
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-lg ${
+                  errors.age ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Enter your age"
+                min="1"
+                max="120"
+              />
+              {errors.age && (
+                <p className="mt-1 text-sm text-red-600">{errors.age}</p>
+              )}
+            </div>
+
+            {/* Gender Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Gender *
+              </label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors text-lg bg-white ${
+                  errors.gender ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+              {errors.gender && (
+                <p className="mt-1 text-sm text-red-600">{errors.gender}</p>
+              )}
             </div>
 
             {/* Password */}
