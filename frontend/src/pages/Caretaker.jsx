@@ -11,6 +11,28 @@ export default function Caretaker() {
   const [user, setUser] = useState(null);
   const [isAvailable, setIsAvailable] = useState(true);
 
+  const userId = localStorage.getItem("userId");
+
+  useEffect(() => {
+    if (userId) {
+      fetchAvailability();
+    }
+  }, [userId]);
+
+  const fetchAvailability = async () => {
+    try {
+      if (!userId) return;
+
+      const response = await axios.get(
+        `http://localhost:4000/api/userdetails/availability/${userId}`,
+      );
+
+      setIsAvailable(response.data.availability ?? true);
+    } catch (error) {
+      console.error("Availability fetch error:", error);
+    }
+  };
+
   const [notifications] = useState([
     {
       id: 1,
@@ -210,6 +232,27 @@ export default function Caretaker() {
     });
   };
   const unreadCount = notifications.filter((n) => n.unread).length;
+
+  const handleAvailabilityChange = async (e) => {
+    const newStatus = e.target.checked;
+
+    try {
+      setIsAvailable(newStatus);
+
+      await axios.patch(
+        `http://localhost:4000/api/userdetails/availability/${userId}`,
+        {
+          availability: newStatus,
+        },
+      );
+    } catch (error) {
+      console.error("Availability update failed:", error);
+
+      setIsAvailable(!newStatus);
+
+      alert("Failed to update availability");
+    }
+  };
 
   const handleLogout = () => {
     logout(); // Use the logout from useAuth context
@@ -564,7 +607,7 @@ export default function Caretaker() {
               <input
                 type="checkbox"
                 checked={isAvailable}
-                onChange={(e) => setIsAvailable(e.target.checked)}
+                onChange={handleAvailabilityChange}
                 className="sr-only peer"
               />
               <div className="w-14 h-8 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
@@ -789,9 +832,11 @@ export default function Caretaker() {
             <div className="bg-blue-600 rounded-2xl p-2 border border-blue-400">
               <span className="text-white text-sm font-bold">
                 {caretakerData.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
+                  ? caretakerData.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                  : "CT"}
               </span>
             </div>
             <div>
@@ -925,8 +970,12 @@ export default function Caretaker() {
               <p className="text-sm font-bold text-gray-900">
                 {caretakerData.name}
               </p>
-              <p className="text-xs text-green-600 font-medium whitespace-nowrap">
-                ● Online
+              <p
+                className={`text-xs font-medium whitespace-nowrap ${
+                  isAvailable ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {isAvailable ? "● Available" : "● Offline"}
               </p>
             </div>
           </div>

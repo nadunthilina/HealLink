@@ -16,6 +16,7 @@ import User from './models/User.js'
 import userDetailsRoutes from "./routes/userDetails.js";
 
 
+
 dotenv.config()
 
 
@@ -48,7 +49,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/patients', patientRoutes)
 app.use('/api/caretakers', caretakerRoutes)
 app.use('/api/admin', adminRoutes)
-app.use("/api/userDetails", userDetailsRoutes)
+app.use("/api/userdetails", userDetailsRoutes)
 
 
 const PORT = process.env.PORT || 4000
