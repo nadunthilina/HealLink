@@ -12,6 +12,8 @@ import userRoutes from './routes/users.js'
 import patientRoutes from './routes/patients.js'
 import caretakerRoutes from './routes/caretakers.js'
 import adminRoutes from './routes/admin.js'
+import schedulesRoutes from './routes/schedules.js'
+import settingsRoutes from './routes/settings.js'
 import User from './models/User.js'
 import userDetailsRoutes from "./routes/userDetails.js";
 
@@ -49,7 +51,9 @@ app.use('/api/users', userRoutes)
 app.use('/api/patients', patientRoutes)
 app.use('/api/caretakers', caretakerRoutes)
 app.use('/api/admin', adminRoutes)
-app.use("/api/userdetails", userDetailsRoutes)
+app.use('/api/schedules', schedulesRoutes)
+app.use('/api/settings', settingsRoutes)
+app.use("/api/userDetails", userDetailsRoutes)
 
 
 const PORT = process.env.PORT || 4000

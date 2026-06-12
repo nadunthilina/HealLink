@@ -2,6 +2,9 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
+import { requireAuth } from "../middleware/auth.js";
+import Patient from "../models/Patient.js";
+import Caretaker from "../models/Caretaker.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
@@ -25,8 +28,10 @@ function signTokens(user) {
 
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, phone, password, role } = req.body;
-    if (!name || !email || !password || !role)
+    const { name, email, phone, password, age, gender } = req.body;
+    const role = "patient"; // Only patient registration is allowed from public signup
+
+    if (!name || !email || !password || !age || !gender)
       return res.status(400).json({ message: "Missing fields" });
 
     const exists = await User.findOne({ email });
@@ -35,6 +40,17 @@ router.post("/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, phone, passwordHash, role });
+
+    await Patient.create({
+      name,
+      email,
+      phone,
+      age: Number(age),
+      gender,
+      userId: user._id,
+      status: 'active'
+    });
+
     const tokens = signTokens(user);
 
     res
@@ -48,7 +64,7 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
@@ -56,14 +72,11 @@ router.post("/login", async (req, res) => {
     if (user.status !== 'active')
       return res.status(403).json({ message: 'Account inactive. Contact admin.' });
 
+    if (!user.passwordHash) return res.status(401).json({ message: 'Invalid credentials' });
+
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
 
-    if (user.role !== role) {
-      return res
-        .status(403)
-        .json({ message: `Invalid role. Registered as ${user.role}` });
-    }
 
     // Create access + refresh tokens
     const tokens = signTokens(user);
@@ -167,6 +180,26 @@ router.get("/verify", async (req, res) => {
     return res
       .status(401)
       .json({ authenticated: false, message: "Invalid token" });
+  }
+});
+
+// ✅ Verify password for Sudo Mode
+router.post("/verify-password", requireAuth(), async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+
+    const ownerPassword = process.env.OWNER_PASSWORD || "Owner@HealLink2026";
+    if (password !== ownerPassword) {
+      return res.status(401).json({ message: "Incorrect password" });
+    }
+
+    res.json({ success: true, message: "Password verified" });
+  } catch (error) {
+    console.error("Password verification error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

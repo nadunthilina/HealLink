@@ -10,7 +10,6 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "patient",
   });
   const [showPassword, setShowPassword] = useState(false);
   const handleInputChange = (e) => {
@@ -30,8 +29,7 @@ export default function Login() {
     try {
       const result = await login(
         formData.email,
-        formData.password,
-        formData.role
+        formData.password
       );
 
       if (result.success) {
@@ -280,26 +278,6 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* Role Selection */}
-                <div>
-                  <label
-                    htmlFor="role"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
-                    Account Type
-                  </label>
-                  <select
-                    id="role"
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className="block w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
-                  >
-                    <option value="patient">Patient/Family Member</option>
-                    <option value="caretaker">Healthcare Caretaker</option>
-                    <option value="admin">System Administrator</option>
-                  </select>
-                </div>
 
                 {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between">

@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { caretakersAPI } from '../../services/api'
+import Swal from 'sweetalert2'
+import { useNavigate } from 'react-router-dom'
 
 export default function CaretakerManagement() {
+  const navigate = useNavigate()
   const [caretakers, setCaretakers] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -15,9 +18,8 @@ export default function CaretakerManagement() {
     phone: '',
     email: '',
     password: '',
-    skills: '',
-    experience: '',
-    certifications: ''
+    age: '',
+    gender: 'male'
   })
 
   useEffect(() => {
@@ -46,9 +48,8 @@ export default function CaretakerManagement() {
         phone: caretaker.phone,
         email: caretaker.email,
         password: '',
-        skills: caretaker.skills || '',
-        experience: caretaker.experience || '',
-        certifications: caretaker.certifications?.join(', ') || ''
+        age: caretaker.age || '',
+        gender: caretaker.gender || 'male'
       })
     } else {
       setEditingCaretaker(null)
@@ -57,9 +58,8 @@ export default function CaretakerManagement() {
         phone: '',
         email: '',
         password: '',
-        skills: '',
-        experience: '',
-        certifications: ''
+        age: '',
+        gender: 'male'
       })
     }
     setIsModalOpen(true)
@@ -70,7 +70,7 @@ export default function CaretakerManagement() {
     try {
       const submitData = {
         ...formData,
-        certifications: formData.certifications ? formData.certifications.split(',').map(c => c.trim()) : []
+        age: parseInt(formData.age, 10)
       }
 
       if (editingCaretaker) {
@@ -83,22 +83,55 @@ export default function CaretakerManagement() {
 
       await fetchCaretakers()
       setIsModalOpen(false)
-      setFormData({ name: '', phone: '', email: '', password: '', skills: '', experience: '', certifications: '' })
+      setFormData({ name: '', phone: '', email: '', password: '', age: '', gender: 'male' })
       setEditingCaretaker(null)
+      
+      Swal.fire({
+        icon: 'success',
+        title: editingCaretaker ? 'Updated!' : 'Created!',
+        text: `Caretaker has been successfully ${editingCaretaker ? 'updated' : 'created'}.`,
+        timer: 2000,
+        showConfirmButton: false
+      })
     } catch (err) {
       console.error('Error saving caretaker:', err)
-      alert(err.response?.data?.message || 'Failed to save caretaker')
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: err.response?.data?.message || 'Failed to save caretaker'
+      })
     }
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this caretaker? This will also delete their user account.')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "This will also delete their user account and you won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    })
+
+    if (result.isConfirmed) {
       try {
         await caretakersAPI.delete(id)
         await fetchCaretakers()
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'Caretaker has been deleted.',
+          timer: 2000,
+          showConfirmButton: false
+        })
       } catch (err) {
         console.error('Error deleting caretaker:', err)
-        alert('Failed to delete caretaker')
+        Swal.fire({
+          icon: 'error',
+          title: 'Delete Failed',
+          text: 'Failed to delete caretaker'
+        })
       }
     }
   }
@@ -108,15 +141,27 @@ export default function CaretakerManagement() {
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active'
       await caretakersAPI.update(caretakerId, { status: newStatus })
       await fetchCaretakers()
+      Swal.fire({
+        icon: 'success',
+        title: 'Status Updated',
+        text: `Caretaker is now ${newStatus}.`,
+        timer: 1500,
+        showConfirmButton: false
+      })
     } catch (err) {
       console.error('Error toggling caretaker status:', err)
-      alert('Failed to update status')
+      Swal.fire({
+        icon: 'error',
+        title: 'Update Failed',
+        text: 'Failed to update status'
+      })
     }
   }
 
   const filteredCaretakers = caretakers.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.skills && c.skills.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (c.caretakerId && c.caretakerId.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (c.phone && c.phone.includes(searchQuery)) ||
     (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
@@ -150,7 +195,7 @@ export default function CaretakerManagement() {
         <div className="flex items-center gap-4 mb-4">
           <input
             type="text"
-            placeholder="Search caretakers..."
+            placeholder="Search by Caretaker ID, name, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 p-2 border border-gray-300 rounded"
@@ -173,9 +218,10 @@ export default function CaretakerManagement() {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
+                <th className="px-4 py-3 text-left text-gray-700 font-medium">Caretaker ID</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Name</th>
+                <th className="px-4 py-3 text-left text-gray-700 font-medium">Age</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Phone</th>
-                <th className="px-4 py-3 text-left text-gray-700 font-medium">Skills</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Status</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Actions</th>
               </tr>
@@ -185,9 +231,10 @@ export default function CaretakerManagement() {
                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                 .map(caretaker => (
                 <tr key={caretaker._id} className="border-t hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-blue-600">{caretaker.caretakerId || 'N/A'}</td>
                   <td className="px-4 py-3">{caretaker.name}</td>
+                  <td className="px-4 py-3">{caretaker.age || 'N/A'}</td>
                   <td className="px-4 py-3">{caretaker.phone}</td>
-                  <td className="px-4 py-3">{caretaker.skills || 'N/A'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       caretaker.status === 'active' 
@@ -199,26 +246,10 @@ export default function CaretakerManagement() {
                   </td>
                   <td className="px-4 py-3 flex items-center gap-2">
                     <button
-                      onClick={() => handleToggleStatus(caretaker._id, caretaker.status)}
-                      className={`px-3 py-1 rounded text-sm ${
-                        caretaker.status === 'active'
-                          ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                          : 'bg-blue-500 hover:bg-blue-600 text-white'
-                      }`}
+                      onClick={() => navigate(`/admin/caretakers/${caretaker._id}`)}
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm"
                     >
-                      {caretaker.status === 'active' ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button 
-                      onClick={() => handleOpenModal(caretaker)}
-                      className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(caretaker._id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    >
-                      Delete
+                      View
                     </button>
                   </td>
                 </tr>
@@ -354,35 +385,31 @@ export default function CaretakerManagement() {
                   />
                 </div>
               )}
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-1">Skills</label>
-                <input
-                  type="text"
-                  value={formData.skills}
-                  onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  placeholder="e.g., Elderly Care, Physical Therapy"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-1">Experience</label>
-                <input
-                  type="text"
-                  value={formData.experience}
-                  onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  placeholder="e.g., 5 years"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-1">Certifications</label>
-                <input
-                  type="text"
-                  value={formData.certifications}
-                  onChange={(e) => setFormData({ ...formData, certifications: e.target.value })}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  placeholder="Separate with commas"
-                />
+              <div className="mb-4 flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-gray-700 mb-1">Age *</label>
+                  <input
+                    type="number"
+                    required
+                    min="18"
+                    max="100"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-gray-700 mb-1">Gender *</label>
+                  <select
+                    required
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
               </div>
               <div className="flex gap-2">
                 <button

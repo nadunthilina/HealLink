@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { usersAPI } from '../../services/api'
+import Swal from 'sweetalert2'
 
 export default function UserManagement() {
   const [users, setUsers] = useState([])
@@ -82,36 +83,77 @@ export default function UserManagement() {
       setIsModalOpen(false)
       setFormData({ name: '', email: '', phone: '', role: '', password: '', status: 'active' })
       setEditingUser(null)
+      
+      Swal.fire({
+        icon: 'success',
+        title: editingUser ? 'Updated!' : 'Created!',
+        text: `User has been successfully ${editingUser ? 'updated' : 'created'}.`,
+        timer: 2000,
+        showConfirmButton: false
+      })
     } catch (err) {
       console.error('Error saving user:', err)
-      alert(err.response?.data?.message || 'Failed to save user')
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: err.response?.data?.message || 'Failed to save user'
+      })
     }
   }
 
   const handleDelete = async (id, email) => {
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
     if (currentUser.email === email) {
-      alert('You cannot delete your own account!')
+      Swal.fire({
+        icon: 'error',
+        title: 'Action Denied',
+        text: 'You cannot delete your own account!'
+      })
       return
     }
 
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    })
+
+    if (result.isConfirmed) {
       try {
         await usersAPI.delete(id)
         await fetchUsers()
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'User has been deleted.',
+          timer: 2000,
+          showConfirmButton: false
+        })
       } catch (err) {
         console.error('Error deleting user:', err)
-        alert('Failed to delete user')
+        Swal.fire({
+          icon: 'error',
+          title: 'Delete Failed',
+          text: 'Failed to delete user'
+        })
       }
     }
   }
 
-  const filteredUsers = users.filter(u =>
-    (u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.role.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (roleFilter === 'all' || u.role === roleFilter)
-  )
+  const filteredUsers = users.filter(u => {
+    const q = searchQuery.toLowerCase()
+    const matchesSearch = !searchQuery ||
+      u.name.toLowerCase().includes(q) ||
+      (u.customId || '').toLowerCase().includes(q) ||
+      (u.phone || '').toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q)
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter
+    return matchesSearch && matchesRole
+  })
 
   if (loading) {
     return (
@@ -143,7 +185,7 @@ export default function UserManagement() {
         <div className="flex items-center gap-4 mb-4">
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search by ID, name, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 p-2 border border-gray-300 rounded"
@@ -179,8 +221,9 @@ export default function UserManagement() {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
+                <th className="px-4 py-3 text-left text-gray-700 font-medium">User ID</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Name</th>
-                <th className="px-4 py-3 text-left text-gray-700 font-medium">Email</th>
+                <th className="px-4 py-3 text-left text-gray-700 font-medium">Phone No</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Role</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Status</th>
                 <th className="px-4 py-3 text-left text-gray-700 font-medium">Actions</th>
@@ -191,8 +234,9 @@ export default function UserManagement() {
                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                 .map(user => (
                 <tr key={user._id} className="border-t hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-blue-600">{user.customId || `USR-${user._id.slice(-6).toUpperCase()}`}</td>
                   <td className="px-4 py-3">{user.name}</td>
-                  <td className="px-4 py-3">{user.email}</td>
+                  <td className="px-4 py-3">{user.phone || 'N/A'}</td>
                   <td className="px-4 py-3 capitalize">{user.role}</td>
                   <td className="px-4 py-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -286,7 +330,7 @@ export default function UserManagement() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">
                 {editingUser ? 'Edit User' : 'Add User'}
@@ -343,12 +387,15 @@ export default function UserManagement() {
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full p-2 border border-gray-300 rounded"
+                  disabled={!!editingUser}
                 >
                   <option value="">Select role</option>
-                  <option value="admin">Admin</option>
                   <option value="caretaker">Caretaker</option>
                   <option value="patient">Patient</option>
                 </select>
+                {editingUser && (
+                  <p className="text-xs text-gray-500 mt-1">Role cannot be changed</p>
+                )}
               </div>
               {editingUser && (
                 <div className="mb-4">

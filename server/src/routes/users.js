@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
+import Patient from '../models/Patient.js'
+import Caretaker from '../models/Caretaker.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
@@ -10,8 +12,21 @@ router.get('/', requireAuth(['admin']), async (req, res) => {
   try {
     const { role } = req.query
     const filter = role ? { role } : {}
-    const users = await User.find(filter).select('-passwordHash').sort({ createdAt: -1 })
-    res.json(users)
+    const users = await User.find(filter).select('-passwordHash').sort({ createdAt: -1 }).lean()
+    
+    const enrichedUsers = await Promise.all(users.map(async (user) => {
+      let customId = `USR-${user._id.toString().slice(-6).toUpperCase()}`
+      if (user.role === 'patient') {
+        const p = await Patient.findOne({ userId: user._id }).lean()
+        if (p?.patientId) customId = p.patientId
+      } else if (user.role === 'caretaker') {
+        const c = await Caretaker.findOne({ userId: user._id }).lean()
+        if (c?.caretakerId) customId = c.caretakerId
+      }
+      return { ...user, customId }
+    }))
+    
+    res.json(enrichedUsers)
   } catch (e) {
     console.error(e)
     res.status(500).json({ message: 'Server error' })
@@ -98,6 +113,13 @@ router.delete('/:id', requireAuth(['admin']), async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id)
     if (!user) return res.status(404).json({ message: 'User not found' })
+
+    if (user.role === 'patient') {
+      await Patient.findOneAndDelete({ userId: user._id })
+    } else if (user.role === 'caretaker') {
+      await Caretaker.findOneAndDelete({ userId: user._id })
+    }
+
     res.json({ message: 'User deleted successfully' })
   } catch (e) {
     console.error(e)

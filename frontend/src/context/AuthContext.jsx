@@ -44,9 +44,9 @@ export function AuthProvider({ children }) {
   /**
    * Login user and store credentials
    */
-  const login = async (email, password, role) => {
+  const login = async (email, password) => {
     try {
-      const response = await authAPI.login({ email, password, role });
+      const response = await authAPI.login({ email, password });
       const { user, accessToken, refreshToken } = response.data;
 
       // Store tokens and user info
