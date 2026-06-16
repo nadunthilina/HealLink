@@ -34,7 +34,12 @@ export default function Login() {
 
       if (result.success) {
         // Success! Navigate to appropriate dashboard
-        navigate(getDashboardUrl());
+        const dashboards = {
+          admin: "/admin",
+          caretaker: "/caretaker",
+          patient: "/patient/dashboard",
+        };
+        navigate(dashboards[result.user.role] || "/login");
       } else {
         // Show error message
         setError(result.message || "Login failed. Please try again.");

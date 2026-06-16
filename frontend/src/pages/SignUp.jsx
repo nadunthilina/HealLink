@@ -82,7 +82,12 @@ export default function SignUp() {
 
       if (result.success) {
         // Navigate to appropriate dashboard after successful registration
-        navigate(getDashboardUrl());
+        const dashboards = {
+          admin: "/admin",
+          caretaker: "/caretaker",
+          patient: "/patient/dashboard",
+        };
+        navigate(dashboards[result.user.role] || "/login");
       } else {
         setErrors({
           submit: result.message || "Registration failed. Please try again.",
