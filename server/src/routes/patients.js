@@ -82,7 +82,7 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
     })
 
     // Generate PAT-00000001 ID
-    const lastPatient = await Patient.findOne().sort({ createdAt: -1 })
+    const lastPatient = await Patient.findOne({ patientId: { $exists: true, $ne: null } }).sort({ patientId: -1 })
     let newIdNum = 1
     if (lastPatient && lastPatient.patientId) {
       const match = lastPatient.patientId.match(/PAT-(\d+)/)
@@ -90,24 +90,30 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
     }
     const patientId = `PAT-${newIdNum.toString().padStart(8, '0')}`
 
-    const patient = await Patient.create({
-      patientId,
-      name,
-      age,
-      gender,
-      phone,
-      email,
-      address,
-      emergencyContact,
-      assignedCaretaker: assignedCaretaker || null,
-      assignmentStartDate: assignmentStartDate || null,
-      assignmentEndDate: assignmentEndDate || null,
-      assignmentStartTime: assignmentStartTime || null,
-      assignmentDayType: assignmentDayType || null,
-      userId: user._id,
-      notes,
-      status: 'active'
-    })
+    let patient
+    try {
+      patient = await Patient.create({
+        patientId,
+        name,
+        age,
+        gender,
+        phone,
+        email,
+        address,
+        emergencyContact,
+        assignedCaretaker: assignedCaretaker || null,
+        assignmentStartDate: assignmentStartDate || null,
+        assignmentEndDate: assignmentEndDate || null,
+        assignmentStartTime: assignmentStartTime || null,
+        assignmentDayType: assignmentDayType || null,
+        userId: user._id,
+        notes,
+        status: 'active'
+      })
+    } catch (err) {
+      await User.findByIdAndDelete(user._id)
+      throw err
+    }
 
     if (assignedCaretaker && assignmentStartDate && assignmentStartTime && assignmentDayType) {
       const autoScheduleIds = []
@@ -115,7 +121,7 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
         const schedule = await Schedule.create({
           patientId: patient._id,
           caretakerId: assignedCaretaker,
-          wardNo: wardNo,
+          wardNo: wardNo || address,
           startDate: date,
           startTime: assignmentStartTime,
           dayType: assignmentDayType,
@@ -187,7 +193,7 @@ router.put('/:id', requireAuth(['admin']), async (req, res) => {
         const schedule = await Schedule.create({
           patientId: patient._id,
           caretakerId: assignedCaretaker,
-          wardNo: wardNo,
+          wardNo: wardNo || address || patient.address,
           startDate: date,
           startTime: assignmentStartTime,
           dayType: assignmentDayType,

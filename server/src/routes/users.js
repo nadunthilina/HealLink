@@ -15,13 +15,17 @@ router.get('/', requireAuth(['admin']), async (req, res) => {
     const users = await User.find(filter).select('-passwordHash').sort({ createdAt: -1 }).lean()
     
     const enrichedUsers = await Promise.all(users.map(async (user) => {
-      let customId = `USR-${user._id.toString().slice(-6).toUpperCase()}`
-      if (user.role === 'patient') {
+      let customId = '';
+      if (user.role === 'admin') {
+        customId = `ADM-${user._id.toString().slice(-6).toUpperCase()}`
+      } else if (user.role === 'patient') {
         const p = await Patient.findOne({ userId: user._id }).lean()
-        if (p?.patientId) customId = p.patientId
+        customId = p?.patientId || `PAT-${user._id.toString().slice(-6).toUpperCase()}`
       } else if (user.role === 'caretaker') {
         const c = await Caretaker.findOne({ userId: user._id }).lean()
-        if (c?.caretakerId) customId = c.caretakerId
+        customId = c?.caretakerId || `CRT-${user._id.toString().slice(-6).toUpperCase()}`
+      } else {
+        customId = `USR-${user._id.toString().slice(-6).toUpperCase()}`
       }
       return { ...user, customId }
     }))

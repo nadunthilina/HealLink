@@ -41,15 +41,30 @@ router.post("/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, phone, passwordHash, role });
 
-    await Patient.create({
-      name,
-      email,
-      phone,
-      age: Number(age),
-      gender,
-      userId: user._id,
-      status: 'active'
-    });
+    // Generate PAT- ID
+    const lastPatient = await Patient.findOne({ patientId: { $exists: true, $ne: null } }).sort({ patientId: -1 })
+    let newIdNum = 1
+    if (lastPatient && lastPatient.patientId) {
+      const match = lastPatient.patientId.match(/PAT-(\d+)/)
+      if (match) newIdNum = parseInt(match[1]) + 1
+    }
+    const patientId = `PAT-${newIdNum.toString().padStart(8, '0')}`
+
+    try {
+      await Patient.create({
+        patientId,
+        name,
+        email,
+        phone,
+        age: Number(age),
+        gender,
+        userId: user._id,
+        status: 'active'
+      });
+    } catch (err) {
+      await User.findByIdAndDelete(user._id);
+      throw err;
+    }
 
     const tokens = signTokens(user);
 

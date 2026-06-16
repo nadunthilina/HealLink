@@ -100,13 +100,21 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
     const halfDayRate = await Settings.getValue('halfDayRate', 1400)
     const dailyRate = dayType === 'full' ? fullDayRate : halfDayRate
 
+    let finalWardNo = wardNo
+    if (!finalWardNo) {
+      const patient = await Patient.findById(patientId)
+      if (patient && patient.address) {
+        finalWardNo = patient.address
+      }
+    }
+
     // Create schedules
     const createdSchedules = []
     for (const date of dates) {
       const schedule = await Schedule.create({
         patientId,
         caretakerId,
-        wardNo,
+        wardNo: finalWardNo,
         startDate: date,
         startTime,
         dayType,
@@ -136,7 +144,7 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
 router.put('/:id', requireAuth(['admin']), async (req, res) => {
   try {
     const { 
-      patientId, caretakerId, startDate, startTime, dayType, 
+      patientId, caretakerId, startDate, startTime, dayType, wardNo,
       status, paymentToAgency, paymentToCaretaker, 
       jobCompletedByPatient, jobCompletedByAdmin, adminNote, notes 
     } = req.body
@@ -150,6 +158,14 @@ router.put('/:id', requireAuth(['admin']), async (req, res) => {
     const safeStartDate = startDate || existingSchedule.startDate
     const safeStartTime = startTime || existingSchedule.startTime
     const safeDayType = dayType || existingSchedule.dayType
+
+    let safeWardNo = wardNo !== undefined ? wardNo : existingSchedule.wardNo
+    if (!safeWardNo) {
+      const patient = await Patient.findById(safePatientId)
+      if (patient && patient.address) {
+        safeWardNo = patient.address
+      }
+    }
 
     // If schedule is not pending, block edits to core details
     const isCoreEdit = existingSchedule.caretakerId.toString() !== safeCaretakerId.toString() ||
@@ -192,6 +208,7 @@ router.put('/:id', requireAuth(['admin']), async (req, res) => {
         startDate: safeStartDate, 
         startTime: safeStartTime, 
         dayType: safeDayType, 
+        wardNo: safeWardNo,
         dailyRate,
         status: newStatus, 
         paymentToAgency: newPaymentToAgency, 

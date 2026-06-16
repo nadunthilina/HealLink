@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { patientsAPI, caretakersAPI } from '../../services/api'
 import Swal from 'sweetalert2'
 import { useNavigate } from 'react-router-dom'
@@ -291,7 +291,7 @@ export default function PatientManagement() {
                   (page >= currentPage - 1 && page <= currentPage + 1)
                 )
                 .map((page, index, array) => (
-                  <>
+                  <Fragment key={page}>
                     {index > 0 && array[index - 1] !== page - 1 && <span key={`ellipsis-${page}`} className="px-2">...</span>}
                     <button
                       key={page}
@@ -304,7 +304,7 @@ export default function PatientManagement() {
                     >
                       {page}
                     </button>
-                  </>
+                  </Fragment>
                 ))
               }
               <button
