@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { schedulesAPI } from "../services/api";
 
 export default function Caretaker() {
   const navigate = useNavigate();
@@ -10,6 +11,17 @@ export default function Caretaker() {
   const [activePage, setActivePage] = useState("userDetails");
   const [user, setUser] = useState(null);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [assignedPatients, setAssignedPatients] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [patientStatusFilter, setPatientStatusFilter] = useState("all");
+  const [patientPage, setPatientPage] = useState(1);
+  const patientPerPage = 10;
+
+  useEffect(() => {
+  const caretakerId = localStorage.getItem("userId");
+  if (caretakerId) fetchAssignedPatients(caretakerId);
+}, []);
 
   const userId = localStorage.getItem("userId");
 
@@ -33,6 +45,41 @@ export default function Caretaker() {
     }
   };
 
+  const fetchAssignedPatients = async (caretakerId) => {
+    setLoading(true);
+    try {
+      const res = await schedulesAPI.getAssignedPatients(caretakerId);
+      setAssignedPatients(res.data || []);
+    } catch (error) {
+      console.error("Error fetching assigned patients:", error);
+      setAssignedPatients([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartCare = async (scheduleId) => {
+  try {
+    await axios.patch(
+      `http://localhost:4000/api/schedules/${scheduleId}/status`,
+      {
+        status: "start",
+      }
+    );
+
+    setAssignedPatients((prev) =>
+      prev.map((item) =>
+        item.scheduleId === scheduleId
+          ? { ...item, status: "start" }
+          : item
+      )
+    );
+  } catch (error) {
+    console.error("Failed to start care:", error);
+    alert("Failed to update status");
+  }
+};
+
   const [notifications] = useState([
     {
       id: 1,
@@ -54,32 +101,7 @@ export default function Caretaker() {
     },
   ]);
 
-  const [assignedPatients] = useState([
-    {
-      id: 1,
-      name: "John Smith",
-      age: 78,
-      condition: "Mobility Issues, Diabetes",
-      address: "456 Oak Street",
-      phone: "+1 (555) 111-2222",
-      emergencyContact: "Jane Smith - +1 (555) 333-4444",
-      medications: ["Metformin 500mg", "Lisinopril 10mg"],
-      nextAppointment: "2025-10-11",
-      notes: "Requires assistance with mobility. Very cooperative patient.",
-    },
-    {
-      id: 2,
-      name: "Mary Johnson",
-      age: 65,
-      condition: "Post-surgery Recovery",
-      address: "789 Pine Avenue",
-      phone: "+1 (555) 555-6666",
-      emergencyContact: "Robert Johnson - +1 (555) 777-8888",
-      medications: ["Pain Relief", "Antibiotics"],
-      nextAppointment: "2025-10-12",
-      notes: "Recovering from hip surgery. Needs help with daily activities.",
-    },
-  ]);
+  
 
   const [dailyReportForm, setDailyReportForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -462,128 +484,219 @@ export default function Caretaker() {
     </div>
   );
 
-  const renderAssignedPatientsPage = () => (
-    <div className="max-w-6xl mx-auto mr-10">
-      <div className="flex items-center justify-between mb-8 px-2">
-        <h2 className="text-2xl font-bold text-gray-900">Assigned Patients</h2>
-        <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-primary/10">
-          {assignedPatients.length} Active Patients
-        </span>
-      </div>
+  const renderAssignedPatientsPage = () => {
+    const q = patientSearch.toLowerCase();
+    const filtered = assignedPatients.filter((item) => {
+      const matchesSearch =
+        !patientSearch ||
+        (item.patient?.patientId || "").toLowerCase().includes(q) ||
+        (item.patient?.name || "").toLowerCase().includes(q) ||
+        (item.patient?.phone || "").includes(q);
+      const matchesStatus =
+        patientStatusFilter === "all" || item.status === patientStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+    const totalPages = Math.ceil(filtered.length / patientPerPage);
+    const paginated = filtered.slice(
+      (patientPage - 1) * patientPerPage,
+      patientPage * patientPerPage
+    );
 
-      <div className="space-y-6">
-        {assignedPatients.map((patient) => (
-          <div
-            key={patient.id}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
-          >
-            <div className="p-8">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
-                <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-2xl font-black text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-inner">
-                    {patient.name[0]}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">
-                      {patient.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 font-medium">
-                      Age: {patient.age} • Next Appointment:{" "}
-                      <span className="text-primary/70">
-                        {patient.nextAppointment}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-                <span className="bg-green-50 text-green-600 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-green-100 shadow-sm">
-                  ● Active Care
-                </span>
+    return (
+      <div className="max-w-6xl mx-auto mr-10">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+
+          {/* Header */}
+          <div className="bg-primary/5 p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Assigned Patients &amp; Schedule History
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Your active and past patient assignments
+                </p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 border-t border-gray-50 pt-8">
-                <div className="space-y-5">
-                  <div>
-                    <h4 className="text-[10px] font-bold text-primary/40 uppercase tracking-[0.2em] mb-3">
-                      Contact Information
-                    </h4>
-                    <div className="space-y-3 text-sm text-gray-600">
-                      <p className="flex items-start gap-3 group/item">
-                        <span className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-primary group-hover/item:bg-primary/10 transition-colors">
-                          📍
-                        </span>
-                        <span className="mt-1 font-medium">
-                          {patient.address}
-                        </span>
-                      </p>
-                      <p className="flex items-center gap-3 group/item">
-                        <span className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-primary group-hover/item:bg-primary/10 transition-colors">
-                          📞
-                        </span>
-                        <span className="font-medium">{patient.phone}</span>
-                      </p>
-                      <p className="flex items-start gap-3 group/item">
-                        <span className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-500">
-                          🚨
-                        </span>
-                        <span className="mt-1 font-bold text-red-600/80">
-                          {patient.emergencyContact}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <div>
-                    <h4 className="text-[10px] font-bold text-primary/40 uppercase tracking-[0.2em] mb-3">
-                      Medical Overview
-                    </h4>
-                    <div className="space-y-4">
-                      <div className="bg-primary/5 p-3 rounded-xl border border-primary/10">
-                        <p className="text-xs font-bold text-primary/60 uppercase mb-1">
-                          Condition
-                        </p>
-                        <p className="text-sm font-bold text-gray-800">
-                          {patient.condition}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase mb-2">
-                          Medications
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {patient.medications.map((med, index) => (
-                            <span
-                              key={index}
-                              className="text-[10px] bg-secondary px-3 py-1.5 rounded-full text-primary font-bold border border-primary/10 hover:bg-primary hover:text-white transition-all cursor-default"
-                            >
-                              {med}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 pt-8 border-t border-gray-50">
-                <h4 className="text-[10px] font-bold text-primary/40 uppercase tracking-[0.2em] mb-4">
-                  Latest Practitioner Notes
-                </h4>
-                <div className="relative">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/10 rounded-full"></div>
-                  <p className="text-sm text-gray-600 pl-6 italic leading-relaxed">
-                    "{patient.notes}"
-                  </p>
-                </div>
-              </div>
+              <span className="bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold">
+                {assignedPatients.length} Record{assignedPatients.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <input
+                type="text"
+                placeholder="Search by Patient ID, name, or phone..."
+                value={patientSearch}
+                onChange={(e) => { setPatientSearch(e.target.value); setPatientPage(1); }}
+                className="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+              <select
+                value={patientStatusFilter}
+                onChange={(e) => { setPatientStatusFilter(e.target.value); setPatientPage(1); }}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="start">Started</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
             </div>
           </div>
-        ))}
+
+          {/* Loading */}
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-block w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-3"></div>
+              <p className="text-gray-500 text-sm">Loading schedules...</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="p-12 text-center">
+              <svg className="w-14 h-14 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-gray-400">No schedules found.</p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-gray-50 border-b">
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Ward No</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Day Type</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Date &amp; Time</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Agency Payment</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Job Status</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">My Payment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.map((item) => (
+                      <tr key={item.scheduleId} className="border-b hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-blue-600">
+                          {item.patient?.patientId || "N/A"}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                          {item.patient?.name || "Unknown"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {item.wardNo || item.patient?.address || "N/A"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            item.dayType === "full"
+                              ? "bg-indigo-100 text-indigo-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}>
+                            {item.dayType === "full" ? "Full Day (24h)" : "Half Day (12h)"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {new Date(item.startDate).toLocaleDateString()} at {item.startTime}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-800">
+                              Rs. {(item.dailyRate || 0).toLocaleString()}
+                            </span>
+                            <span className={`text-xs ${item.paymentToAgency === "paid" ? "text-green-600" : "text-red-500"}`}>
+                              {item.paymentToAgency === "paid" ? "✓ Paid" : "✗ Unpaid"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+  <span
+    className={`px-2 py-1 rounded-full text-xs font-medium ${
+      item.status === "completed"
+        ? "bg-green-100 text-green-800"
+        : item.status === "cancelled"
+        ? "bg-red-100 text-red-800"
+        : item.status === "start"
+        ? "bg-blue-100 text-blue-800"
+        : "bg-yellow-100 text-yellow-800"
+    }`}
+  >
+    {item.status}
+  </span>
+
+  {item.status !== "start" &&
+    item.status !== "completed" &&
+    item.status !== "cancelled" && (
+      <button
+        onClick={() => handleStartCare(item.scheduleId)}
+        className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+      >
+        Start Care
+      </button>
+    )}
+</div>
+                            {item.jobCompletedByAdmin && item.adminNote && (
+                              <button
+                                onClick={() => alert(`Admin Note:\n${item.adminNote}`)}
+                                className="text-blue-500 hover:text-blue-700"
+                                title="View Admin Note"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-800">
+                              Rs. {(item.dailyRate || 0).toLocaleString()}
+                            </span>
+                            <span className={`text-xs ${item.paymentToCaretaker === "success" ? "text-green-600" : "text-red-500"}`}>
+                              {item.paymentToCaretaker === "success" ? "✓ Paid" : "✗ Pending"}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <p className="text-sm text-gray-500">
+                    Showing {(patientPage - 1) * patientPerPage + 1} to{" "}
+                    {Math.min(patientPage * patientPerPage, filtered.length)} of{" "}
+                    {filtered.length}
+                  </p>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setPatientPage((p) => Math.max(1, p - 1))}
+                      disabled={patientPage === 1}
+                      className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50 hover:bg-gray-50"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setPatientPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={patientPage >= totalPages}
+                      className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50 hover:bg-gray-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderAvailabilityPage = () => (
     <div className="max-w-6xl mx-auto mr-10">
@@ -654,123 +767,7 @@ export default function Caretaker() {
     </div>
   );
 
-  const renderReportsPage = () => (
-    <div className="max-w-6xl mx-auto mr-10 space-y-8">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-primary/5 p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900">
-            Log Daily Activity
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Submit progress and care reports
-          </p>
-        </div>
-
-        <div className="p-6">
-          <form onSubmit={handleReportSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase">
-                  Patient Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Select or enter patient"
-                  value={dailyReportForm.patient}
-                  onChange={(e) =>
-                    setDailyReportForm({
-                      ...dailyReportForm,
-                      patient: e.target.value,
-                    })
-                  }
-                  className="w-full border border-gray-200 px-4 py-2 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 uppercase">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={dailyReportForm.date}
-                  onChange={(e) =>
-                    setDailyReportForm({
-                      ...dailyReportForm,
-                      date: e.target.value,
-                    })
-                  }
-                  className="w-full border border-gray-200 px-4 py-2 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">
-                Activities Performed
-              </label>
-              <textarea
-                placeholder="What care was provided today?"
-                value={dailyReportForm.activities}
-                onChange={(e) =>
-                  setDailyReportForm({
-                    ...dailyReportForm,
-                    activities: e.target.value,
-                  })
-                }
-                className="w-full border border-gray-200 px-4 py-2 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none"
-                rows={4}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="bg-primary hover:bg-[#0519d9] text-white py-2.5 px-8 rounded-lg font-bold transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:-translate-y-0.5 active:scale-95"
-            >
-              Submit Daily Report
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-4 px-2">
-          History & Care Notes
-        </h3>
-        <div className="space-y-3">
-          {careNotes.map((note) => (
-            <div
-              key={note.id}
-              className="p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-bold text-gray-900">{note.patient}</h4>
-                  <p className="text-xs text-gray-400">
-                    {note.date} at {note.time}
-                  </p>
-                </div>
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${
-                    note.category === "Medical"
-                      ? "bg-red-50 text-red-600 border-red-100"
-                      : "bg-blue-50 text-blue-600 border-blue-100"
-                  }`}
-                >
-                  {note.category}
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {note.note}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -866,16 +863,8 @@ export default function Caretaker() {
               label: "Availability",
               icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
             },
-            {
-              id: "reports",
-              label: "Daily Reports",
-              icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01",
-            },
-            {
-              id: "notifications",
-              label: "Notifications",
-              icon: "M15 17h5l-5 5v-5zM12 3a9 9 0 11-9 9 9 9 0 019-9z",
-            },
+         
+      
           ].map((item) => (
             <button
               key={item.id}
@@ -988,7 +977,7 @@ export default function Caretaker() {
             {activePage === "userDetails" && renderUserDetailsPage()}
             {activePage === "assignedPatients" && renderAssignedPatientsPage()}
             {activePage === "availability" && renderAvailabilityPage()}
-            {activePage === "reports" && renderReportsPage()}
+        
           </div>
         </div>
       </main>
