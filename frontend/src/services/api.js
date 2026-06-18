@@ -122,6 +122,7 @@ export const schedulesAPI = {
   create: (data) => api.post("/schedules", data),
   update: (id, data) => api.put(`/schedules/${id}`, data),
   delete: (id) => api.delete(`/schedules/${id}`),
+  getAssignedPatients: (caretakerId) => api.get(`/schedules/assigned-patients/${caretakerId}`),
 };
 
 // Admin API

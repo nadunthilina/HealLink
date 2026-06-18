@@ -5,9 +5,14 @@ import Patient from '../models/Patient.js'
 import Caretaker from '../models/Caretaker.js'
 import Settings from '../models/Settings.js'
 import { requireAuth } from '../middleware/auth.js'
+import { getAssignedPatients, updateScheduleStatus } from '../controllers/scheduleController.js'
+
 
 const router = Router()
 
+// Get patients assigned to a specific caretaker (by User._id)
+router.get('/assigned-patients/:caretakerId', requireAuth(['caretaker', 'admin']), getAssignedPatients)
+router.patch("/:scheduleId/status", updateScheduleStatus);
 // Helper to calculate end date/time
 function getEndDateTime(startDate, startTime, dayType) {
   const start = new Date(`${startDate.split('T')[0]}T${startTime}:00`)
@@ -20,6 +25,7 @@ function getEndDateTime(startDate, startTime, dayType) {
 async function checkCaretakerConflict(caretakerId, startDate, startTime, dayType, excludeScheduleId = null) {
   const newStart = new Date(`${startDate.split('T')[0]}T${startTime}:00`)
   const newEnd = getEndDateTime(startDate, startTime, dayType)
+  
 
   const query = {
     caretakerId,
