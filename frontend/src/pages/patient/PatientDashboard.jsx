@@ -890,16 +890,7 @@ export default function PatientDashboard() {
                       <option value="half">Half Day (12h)</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-0.5">Payment</label>
-                    <select
-                      value={bookingForm.paymentToAgency}
-                      onChange={(event) => setBookingForm({ ...bookingForm, paymentToAgency: event.target.value })}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                    >
-                      <option value="unpaid">Unpaid</option>
-                    </select>
-                  </div>
+                 
                 </div>
                 <div>
                   <label className="block text-xs text-gray-600 mb-0.5">Additional Notes</label>
