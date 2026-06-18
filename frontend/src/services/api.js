@@ -101,6 +101,7 @@ export const usersAPI = {
 // Patients API
 export const patientsAPI = {
   getAll: () => api.get("/patients"),
+  getMine: () => api.get("/patients/me"),
   getOne: (id) => api.get(`/patients/${id}`),
   create: (data) => api.post("/patients", data),
   update: (id, data) => api.put(`/patients/${id}`, data),
@@ -119,9 +120,11 @@ export const caretakersAPI = {
 // Schedules API
 export const schedulesAPI = {
   getAll: () => api.get("/schedules"),
+  getMine: () => api.get("/schedules/my"),
   create: (data) => api.post("/schedules", data),
   update: (id, data) => api.put(`/schedules/${id}`, data),
   delete: (id) => api.delete(`/schedules/${id}`),
+  markPatientComplete: (id) => api.patch(`/schedules/${id}/patient-complete`),
   getAssignedPatients: (caretakerId) => api.get(`/schedules/assigned-patients/${caretakerId}`),
 };
 

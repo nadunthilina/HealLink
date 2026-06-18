@@ -8,6 +8,23 @@ import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
 
+// Get current patient profile
+router.get('/me', requireAuth(['patient']), async (req, res) => {
+  try {
+    const patient = await Patient.findOne({ userId: req.user.sub })
+      .populate('assignedCaretaker', 'name phone email skills caretakerId gender availability')
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient profile not found' })
+    }
+
+    res.json(patient)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
 // Get all patients (Admin only)
 router.get('/', requireAuth(['admin']), async (req, res) => {
   try {
