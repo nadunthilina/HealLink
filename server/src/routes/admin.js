@@ -13,10 +13,7 @@ router.get('/stats', requireAuth(['admin']), async (req, res) => {
     const totalUsers = await User.countDocuments()
     const totalPatients = await User.countDocuments({ status: 'active', role: 'patient' })
     const totalCaretakers = await User.countDocuments({ status: 'active', role: 'caretaker' })
-    const availableCaretakers = await Caretaker.countDocuments({ 
-      status: 'active', 
-      availability: 'available' 
-    })
+    const availableCaretakers = await Caretaker.countDocuments({ status: 'active' })
 
     // Recent activity counts (could be enhanced with actual activity tracking)
     const recentPatients = await Patient.countDocuments({

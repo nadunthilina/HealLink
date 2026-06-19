@@ -39,7 +39,7 @@ export default function Caretaker() {
         `http://localhost:4000/api/userdetails/availability/${userId}`,
       );
 
-      setIsAvailable(response.data.availability ?? true);
+      setIsAvailable(response.data.status === "active");
     } catch (error) {
       console.error("Availability fetch error:", error);
     }
@@ -256,21 +256,20 @@ export default function Caretaker() {
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   const handleAvailabilityChange = async (e) => {
-    const newStatus = e.target.checked;
+    const checked = e.target.checked;
+    const newStatus = checked ? "active" : "inactive";
 
     try {
-      setIsAvailable(newStatus);
+      setIsAvailable(checked);
 
       await axios.patch(
         `http://localhost:4000/api/userdetails/availability/${userId}`,
-        {
-          availability: newStatus,
-        },
+        { status: newStatus },
       );
     } catch (error) {
       console.error("Availability update failed:", error);
 
-      setIsAvailable(!newStatus);
+      setIsAvailable(!checked);
 
       alert("Failed to update availability");
     }
