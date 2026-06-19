@@ -39,7 +39,7 @@ export default function Caretaker() {
         `http://localhost:4000/api/userdetails/availability/${userId}`,
       );
 
-      setIsAvailable(response.data.availability ?? true);
+      setIsAvailable(response.data.status === "active");
     } catch (error) {
       console.error("Availability fetch error:", error);
     }
@@ -101,7 +101,7 @@ export default function Caretaker() {
     },
   ]);
 
-  
+
 
   const [dailyReportForm, setDailyReportForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -256,21 +256,20 @@ export default function Caretaker() {
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   const handleAvailabilityChange = async (e) => {
-    const newStatus = e.target.checked;
+    const checked = e.target.checked;
+    const newStatus = checked ? "active" : "inactive";
 
     try {
-      setIsAvailable(newStatus);
+      setIsAvailable(checked);
 
       await axios.patch(
         `http://localhost:4000/api/userdetails/availability/${userId}`,
-        {
-          availability: newStatus,
-        },
+        { status: newStatus },
       );
     } catch (error) {
       console.error("Availability update failed:", error);
 
-      setIsAvailable(!newStatus);
+      setIsAvailable(!checked);
 
       alert("Failed to update availability");
     }
@@ -284,13 +283,16 @@ export default function Caretaker() {
   // ---------------- Render Functions ----------------
 
   const renderNotificationsPage = () => (
-    <div className="max-w-6xl mx-auto mr-10">
+    /* was: max-w-6xl mx-auto mr-10 — removed fixed mr-10 */
+    <div className="w-full max-w-6xl mx-auto">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-primary/5 p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
+        {/* was: p-6 — now responsive */}
+        <div className="bg-primary/5 p-4 md:p-6 border-b border-gray-100">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">Notifications</h2>
         </div>
 
-        <div className="p-6">
+        {/* was: p-6 — now responsive */}
+        <div className="p-4 md:p-6">
           {notifications.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -299,23 +301,24 @@ export default function Caretaker() {
               <p className="text-gray-500">No new notifications.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {notifications.map((notif) => (
                 <div
                   key={notif.id}
-                  className={`p-4 rounded-xl border transition-all ${
+                  className={`p-3 md:p-4 rounded-xl border transition-all ${
                     notif.unread
                       ? "bg-primary/5 border-primary/20"
                       : "bg-white border-gray-100 hover:border-primary/20"
                   }`}
                 >
-                  <div className="flex justify-between items-start gap-4">
+                  {/* was: gap-4 — now gap-2 md:gap-4 to avoid overflow */}
+                  <div className="flex justify-between items-start gap-2 md:gap-4">
                     <p
-                      className={`font-medium ${notif.unread ? "text-primary" : "text-gray-700"}`}
+                      className={`font-medium text-sm md:text-base ${notif.unread ? "text-primary" : "text-gray-700"}`}
                     >
                       {notif.message}
                     </p>
-                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                    <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">
                       {notif.time}
                     </span>
                   </div>
@@ -329,10 +332,13 @@ export default function Caretaker() {
   );
 
   const renderUserDetailsPage = () => (
-    <div className="max-w-6xl mx-auto mr-10">
-      <div className="bg-blue-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden ">
-        <div className="bg-primary/5 p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900">
+    /* was: max-w-6xl mx-auto mr-10 — removed fixed mr-10 */
+    <div className="w-full max-w-6xl mx-auto">
+      <div className="bg-blue-50 rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* was: p-6 — now responsive */}
+        <div className="bg-primary/5 p-4 md:p-6 border-b border-gray-100">
+          {/* was: text-xl — now responsive */}
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">
             Professional Profile
           </h2>
           <p className="text-sm text-gray-500 mt-1">
@@ -340,15 +346,18 @@ export default function Caretaker() {
           </p>
         </div>
 
-        <div className="p-6">
+        {/* was: p-6 — now responsive */}
+        <div className="p-4 md:p-6">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleUserDataSave();
             }}
-            className="space-y-6"
+            /* was: space-y-6 — now responsive */
+            className="space-y-4 md:space-y-6"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* grid already responsive with md:grid-cols-2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">
                   Full Name
@@ -470,7 +479,7 @@ export default function Caretaker() {
               />
             </div>
 
-            <div className="pt-4">
+            <div className="pt-2 md:pt-4">
               <button
                 type="submit"
                 className="bg-primary hover:bg-[#0519d9] text-white py-2.5 px-8 rounded-lg font-semibold transition-all shadow-md shadow-primary/20 hover:shadow-lg hover:-translate-y-0.5 w-full md:w-auto active:scale-95"
@@ -503,36 +512,44 @@ export default function Caretaker() {
     );
 
     return (
-      <div className="max-w-6xl mx-auto mr-10">
+      /* was: max-w-6xl mx-auto mr-10 — removed fixed mr-10 */
+      <div className="w-full max-w-6xl mx-auto">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
 
           {/* Header */}
-          <div className="bg-primary/5 p-6 border-b border-gray-100">
-            <div className="flex items-center justify-between mb-4">
+          {/* was: p-6 — now responsive */}
+          <div className="bg-primary/5 p-4 md:p-6 border-b border-gray-100">
+            {/* was: flex items-center justify-between mb-4 — added flex-wrap gap-2 */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 md:mb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
+                {/* was: text-xl — now responsive */}
+                <h2 className="text-base md:text-xl font-bold text-gray-900">
                   Assigned Patients &amp; Schedule History
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-xs md:text-sm text-gray-500 mt-1">
                   Your active and past patient assignments
                 </p>
               </div>
-              <span className="bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold">
+              {/* was: px-4 py-2 text-sm — now smaller on mobile */}
+              <span className="bg-primary/10 text-primary px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold shrink-0">
                 {assignedPatients.length} Record{assignedPatients.length !== 1 ? "s" : ""}
               </span>
             </div>
-            <div className="flex flex-wrap gap-3">
+            {/* filter row already has flex-wrap gap-3 */}
+            <div className="flex flex-wrap gap-2 md:gap-3">
               <input
                 type="text"
                 placeholder="Search by Patient ID, name, or phone..."
                 value={patientSearch}
                 onChange={(e) => { setPatientSearch(e.target.value); setPatientPage(1); }}
-                className="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                /* was: flex-1 min-w-[200px] — added w-full so it fills on mobile */
+                className="flex-1 w-full sm:w-auto min-w-0 sm:min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               />
+              {/* was: no width — added w-full sm:w-auto */}
               <select
                 value={patientStatusFilter}
                 onChange={(e) => { setPatientStatusFilter(e.target.value); setPatientPage(1); }}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                className="w-full sm:w-auto px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               >
                 <option value="all">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -545,13 +562,14 @@ export default function Caretaker() {
 
           {/* Loading */}
           {loading ? (
-            <div className="p-12 text-center">
+            /* was: p-12 — now responsive */
+            <div className="p-8 md:p-12 text-center">
               <div className="inline-block w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-3"></div>
               <p className="text-gray-500 text-sm">Loading schedules...</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <svg className="w-14 h-14 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-8 md:p-12 text-center">
+              <svg className="w-12 h-12 md:w-14 md:h-14 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -559,34 +577,37 @@ export default function Caretaker() {
             </div>
           ) : (
             <>
+              {/* overflow-x-auto already present — added min-w to table for clean scroll */}
               <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full text-left min-w-[750px]">
                   <thead>
                     <tr className="bg-gray-50 border-b">
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Ward No</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Day Type</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Date &amp; Time</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Agency Payment</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Job Status</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">My Payment</th>
+                      {/* was: px-4 py-3 — now px-3 py-2 md:px-4 md:py-3 */}
+                      <th className="px-3 py-2 md:px-4 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Patient ID</th>
+                      <th className="px-3 py-2 md:px-4 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Patient Name</th>
+                      <th className="px-3 py-2 md:px-4 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Ward No</th>
+                      <th className="px-3 py-2 md:px-4 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Day Type</th>
+                      <th className="px-3 py-2 md:px-4 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date &amp; Time</th>
+                      <th className="px-3 py-2 md:px-4 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Agency Payment</th>
+                      <th className="px-3 py-2 md:px-4 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Job Status</th>
+                      <th className="px-3 py-2 md:px-4 md:py-3 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">My Payment</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginated.map((item) => (
                       <tr key={item.scheduleId} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-blue-600">
+                        {/* was: px-4 py-3 — now px-3 py-2 md:px-4 md:py-3 on all cells */}
+                        <td className="px-3 py-2 md:px-4 md:py-3 text-sm font-medium text-blue-600 whitespace-nowrap">
                           {item.patient?.patientId || "N/A"}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                        <td className="px-3 py-2 md:px-4 md:py-3 text-sm font-medium text-gray-800 whitespace-nowrap">
                           {item.patient?.name || "Unknown"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 py-2 md:px-4 md:py-3 text-sm text-gray-600 whitespace-nowrap">
                           {item.wardNo || item.patient?.address || "N/A"}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        <td className="px-3 py-2 md:px-4 md:py-3 text-sm">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
                             item.dayType === "full"
                               ? "bg-indigo-100 text-indigo-800"
                               : "bg-amber-100 text-amber-800"
@@ -594,24 +615,24 @@ export default function Caretaker() {
                             {item.dayType === "full" ? "Full Day (24h)" : "Half Day (12h)"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 py-2 md:px-4 md:py-3 text-sm text-gray-600 whitespace-nowrap">
                           {new Date(item.startDate).toLocaleDateString()} at {item.startTime}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-3 py-2 md:px-4 md:py-3 text-sm">
                           <div className="flex flex-col">
-                            <span className="font-medium text-gray-800">
+                            <span className="font-medium text-gray-800 whitespace-nowrap">
                               Rs. {(item.dailyRate || 0).toLocaleString()}
                             </span>
-                            <span className={`text-xs ${item.paymentToAgency === "paid" ? "text-green-600" : "text-red-500"}`}>
+                            <span className={`text-xs whitespace-nowrap ${item.paymentToAgency === "paid" ? "text-green-600" : "text-red-500"}`}>
                               {item.paymentToAgency === "paid" ? "✓ Paid" : "✗ Unpaid"}
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-3 py-2 md:px-4 md:py-3 text-sm">
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-2">
   <span
-    className={`px-2 py-1 rounded-full text-xs font-medium ${
+    className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
       item.status === "completed"
         ? "bg-green-100 text-green-800"
         : item.status === "cancelled"
@@ -629,7 +650,7 @@ export default function Caretaker() {
     item.status !== "cancelled" && (
       <button
         onClick={() => handleStartCare(item.scheduleId)}
-        className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+        className="px-2 py-1 bg-blue-600 text-white rounded-lg text-xs md:text-sm hover:bg-blue-700 whitespace-nowrap"
       >
         Start Care
       </button>
@@ -638,7 +659,7 @@ export default function Caretaker() {
                             {item.jobCompletedByAdmin && item.adminNote && (
                               <button
                                 onClick={() => alert(`Admin Note:\n${item.adminNote}`)}
-                                className="text-blue-500 hover:text-blue-700"
+                                className="text-blue-500 hover:text-blue-700 shrink-0"
                                 title="View Admin Note"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -649,12 +670,12 @@ export default function Caretaker() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-3 py-2 md:px-4 md:py-3 text-sm">
                           <div className="flex flex-col">
-                            <span className="font-medium text-gray-800">
+                            <span className="font-medium text-gray-800 whitespace-nowrap">
                               Rs. {(item.dailyRate || 0).toLocaleString()}
                             </span>
-                            <span className={`text-xs ${item.paymentToCaretaker === "success" ? "text-green-600" : "text-red-500"}`}>
+                            <span className={`text-xs whitespace-nowrap ${item.paymentToCaretaker === "success" ? "text-green-600" : "text-red-500"}`}>
                               {item.paymentToCaretaker === "success" ? "✓ Paid" : "✗ Pending"}
                             </span>
                           </div>
@@ -665,10 +686,10 @@ export default function Caretaker() {
                 </table>
               </div>
 
-              {/* Pagination */}
+              {/* Pagination — was: flex items-center justify-between; added flex-wrap gap-2 */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t">
-                  <p className="text-sm text-gray-500">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t">
+                  <p className="text-xs md:text-sm text-gray-500">
                     Showing {(patientPage - 1) * patientPerPage + 1} to{" "}
                     {Math.min(patientPage * patientPerPage, filtered.length)} of{" "}
                     {filtered.length}
@@ -699,24 +720,31 @@ export default function Caretaker() {
   };
 
   const renderAvailabilityPage = () => (
-    <div className="max-w-6xl mx-auto mr-10">
+    /* was: max-w-6xl mx-auto mr-10 — removed fixed mr-10 */
+    <div className="w-full max-w-6xl mx-auto">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-primary/5 p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-900">Work Availability</h2>
+        {/* was: p-6 — now responsive */}
+        <div className="bg-primary/5 p-4 md:p-6 border-b border-gray-100">
+          {/* was: text-xl — now responsive */}
+          <h2 className="text-lg md:text-xl font-bold text-gray-900">Work Availability</h2>
           <p className="text-sm text-gray-500 mt-1">
             Manage your service status
           </p>
         </div>
 
-        <div className="p-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between p-6 bg-gray-50 rounded-xl gap-6">
+        {/* was: p-8 — now responsive */}
+        <div className="p-4 md:p-8">
+          {/* was: p-6 gap-6 — now responsive */}
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 md:p-6 bg-gray-50 rounded-xl gap-4 md:gap-6">
             <div className="text-center sm:text-left">
-              <h3 className="text-lg font-bold text-gray-900">Status Toggle</h3>
+              {/* was: text-lg — now responsive */}
+              <h3 className="text-base md:text-lg font-bold text-gray-900">Status Toggle</h3>
               <p className="text-sm text-gray-500">
                 When active, you are visible for new patient assignments
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer scale-125">
+            {/* was: scale-125 — now scale-110 sm:scale-125 to prevent clipping on small screens */}
+            <label className="relative inline-flex items-center cursor-pointer scale-110 sm:scale-125">
               <input
                 type="checkbox"
                 checked={isAvailable}
@@ -727,9 +755,10 @@ export default function Caretaker() {
             </label>
           </div>
 
-          <div className="mt-10 text-center">
+          {/* was: mt-10 — now responsive */}
+          <div className="mt-6 md:mt-10 text-center">
             <div
-              className={`inline-flex items-center px-8 py-3 rounded-full text-lg font-bold shadow-sm ${
+              className={`inline-flex items-center px-4 sm:px-8 py-2 sm:py-3 rounded-full text-sm sm:text-lg font-bold shadow-sm ${
                 isAvailable
                   ? "bg-green-50 text-green-700 border border-green-100"
                   : "bg-red-50 text-red-700 border border-red-100"
@@ -741,11 +770,12 @@ export default function Caretaker() {
             </div>
           </div>
 
-          <div className="mt-12 bg-primary/5 rounded-xl p-6 border border-primary/10">
-            <h4 className="font-bold text-primary mb-4 flex items-center gap-2">
+          {/* was: mt-12 p-6 — now responsive */}
+          <div className="mt-6 md:mt-12 bg-primary/5 rounded-xl p-4 md:p-6 border border-primary/10">
+            <h4 className="font-bold text-primary mb-3 md:mb-4 flex items-center gap-2">
               <span className="text-xl">ℹ️</span> Availability Guidelines
             </h4>
-            <ul className="space-y-3">
+            <ul className="space-y-2 md:space-y-3">
               {[
                 "Visible to patients looking for immediate care",
                 "Existing schedules remain active regardless of status",
@@ -756,7 +786,7 @@ export default function Caretaker() {
                   key={idx}
                   className="text-sm text-gray-600 flex items-start gap-3"
                 >
-                  <span className="text-primary mt-1">•</span>
+                  <span className="text-primary mt-1 shrink-0">•</span>
                   {text}
                 </li>
               ))}
@@ -767,11 +797,11 @@ export default function Caretaker() {
     </div>
   );
 
-  
+
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Mobile Sidebar Toggle */}
+      {/* Mobile Sidebar Toggle — unchanged */}
       <div className="md:hidden fixed top-4 right-4 z-[60]">
         <button
           onClick={() => {
@@ -798,12 +828,12 @@ export default function Caretaker() {
         </button>
       </div>
 
-      {/* Sidebar - Matching AdminLayout */}
+      {/* Sidebar — unchanged */}
       <aside
         id="sidebar"
         className="fixed inset-y-0 left-0 z-50 w-64 h-screen bg-gradient-to-b from-blue-900 to-blue-800 text-white p-5 flex flex-col shadow-xl transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out"
       >
-        {/* Logo - Matching AdminLayout */}
+        {/* Logo */}
         <div className="flex items-center space-x-3 mb-8">
           <div className="bg-white p-2 rounded-lg">
             <svg
@@ -823,7 +853,7 @@ export default function Caretaker() {
           <span className="text-2xl font-bold">HealLink</span>
         </div>
 
-        {/* User Profile Card - Matching AdminLayout */}
+        {/* User Profile Card */}
         <div className="bg-blue-800 bg-opacity-50 rounded-lg p-2 mb-6">
           <div className="flex items-center space-x-3">
             <div className="bg-blue-600 rounded-2xl p-2 border border-blue-400">
@@ -836,7 +866,7 @@ export default function Caretaker() {
                   : "CT"}
               </span>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold truncate w-32">
                 {caretakerData.name}
               </p>
@@ -845,7 +875,7 @@ export default function Caretaker() {
           </div>
         </div>
 
-        {/* Navigation - Matching AdminLayout style */}
+        {/* Navigation */}
         <nav className="flex-1 space-y-2">
           {[
             {
@@ -863,8 +893,8 @@ export default function Caretaker() {
               label: "Availability",
               icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
             },
-         
-      
+
+
           ].map((item) => (
             <button
               key={item.id}
@@ -886,7 +916,7 @@ export default function Caretaker() {
               }`}
             >
               <svg
-                className="w-5 h-5"
+                className="w-5 h-5 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -908,14 +938,14 @@ export default function Caretaker() {
           ))}
         </nav>
 
-        {/* Logout - Matching AdminLayout */}
+        {/* Logout */}
         <div className="pt-4 border-t border-blue-700">
           <button
             onClick={handleLogout}
             className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-600 hover:text-white transition-colors text-blue-100"
           >
             <svg
-              className="w-5 h-5"
+              className="w-5 h-5 shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -942,21 +972,25 @@ export default function Caretaker() {
         className="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden backdrop-blur-sm"
       ></div>
 
-      {/* Main Content Area - Matching AdminLayout */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navbar - Matching AdminDashboard header pattern */}
-        <header className="bg-white shadow-sm border-b border-gray-200 py-4 px-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-800 capitalize">
+      {/* Main Content Area
+          was: flex-1 flex flex-col overflow-hidden
+          added md:ml-64 so content is not hidden under the fixed sidebar on desktop */}
+      <main className="flex-1 flex flex-col overflow-hidden md:ml-64">
+        {/* Header
+            was: py-4 px-8 — now py-3 px-4 md:px-8 for mobile */}
+        <header className="bg-white shadow-sm border-b border-gray-200 py-3 px-4 md:px-8 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            {/* was: text-xl — now text-base md:text-xl */}
+            <h1 className="text-base md:text-xl font-semibold text-gray-800 capitalize truncate">
               {activePage === "userDetails"
                 ? "Profile"
                 : activePage.replace(/([A-Z])/g, " $1")}
             </h1>
-            <p className="text-sm text-gray-500">Caretaker Portal Interface</p>
+            <p className="text-xs md:text-sm text-gray-500">Caretaker Portal Interface</p>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 shrink-0">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-gray-900">
+              <p className="text-sm font-bold text-gray-900 truncate max-w-[160px]">
                 {caretakerData.name}
               </p>
               <p
@@ -970,14 +1004,16 @@ export default function Caretaker() {
           </div>
         </header>
 
-        {/* Content Scrolling Area */}
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-8xl ml-0">
+        {/* Content Scrolling Area
+            was: p-8 — now p-3 sm:p-4 md:p-6 lg:p-8 */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
+          {/* was: max-w-8xl ml-0 (max-w-8xl doesn't exist in Tailwind) — now w-full */}
+          <div className="w-full">
             {activePage === "notifications" && renderNotificationsPage()}
             {activePage === "userDetails" && renderUserDetailsPage()}
             {activePage === "assignedPatients" && renderAssignedPatientsPage()}
             {activePage === "availability" && renderAvailabilityPage()}
-        
+
           </div>
         </div>
       </main>

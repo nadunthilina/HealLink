@@ -18,11 +18,6 @@ const userDetailsSchema = new mongoose.Schema(
     license: { type: String },
 
     emergencyContact: { type: String },
-
-    availability: {
-      type: Boolean,
-      default: true,
-    },
   },
   { timestamps: true }
 );

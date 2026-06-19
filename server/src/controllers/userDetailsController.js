@@ -1,10 +1,10 @@
-import UserDetails from "../models/userDetails.js";
+import Caretaker from "../models/Caretaker.js";
 
 export const getAvailability = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const caretaker = await UserDetails.findOne({ userId });
+    const caretaker = await Caretaker.findOne({ userId });
 
     if (!caretaker) {
       return res.status(404).json({
@@ -15,7 +15,7 @@ export const getAvailability = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      availability: caretaker.availability,
+      status: caretaker.status,
     });
   } catch (error) {
     console.error(error);
@@ -30,12 +30,12 @@ export const getAvailability = async (req, res) => {
 export const updateAvailability = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { availability } = req.body;
+    const { status } = req.body;
 
-    const caretaker = await UserDetails.findOneAndUpdate(
+    const caretaker = await Caretaker.findOneAndUpdate(
       { userId },
-      { availability },
-      { new: true }
+      { status },
+      { new: true, runValidators: true }
     );
 
     if (!caretaker) {
@@ -47,8 +47,8 @@ export const updateAvailability = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Availability updated successfully",
-      availability: caretaker.availability,
+      message: "Status updated successfully",
+      status: caretaker.status,
     });
   } catch (error) {
     console.error(error);

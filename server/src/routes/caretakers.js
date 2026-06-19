@@ -81,8 +81,7 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
       experience,
       certifications: certifications || [],
       userId: user._id,
-      status: 'active',
-      availability: 'available'
+      status: 'active'
     })
 
     const populated = await Caretaker.findById(caretaker._id)
