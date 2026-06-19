@@ -6,13 +6,20 @@ import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
 
-// Get all caretakers (Admin only)
-router.get('/', requireAuth(['admin']), async (req, res) => {
+// Get all caretakers
+router.get('/', requireAuth(['admin', 'patient']), async (req, res) => {
   try {
-    const caretakers = await Caretaker.find()
-      .populate('userId', 'email status')
-      .populate('assignedPatients', 'name condition')
-      .sort({ createdAt: -1 })
+    let query = Caretaker.find().sort({ createdAt: -1 })
+
+    if (req.user.role === 'admin') {
+      query = query
+        .populate('userId', 'email status')
+        .populate('assignedPatients', 'name condition')
+    } else {
+      query = query.select('caretakerId name age gender phone email skills experience certifications availability status rating assignedPatients')
+    }
+
+    const caretakers = await query
     res.json(caretakers)
   } catch (e) {
     console.error(e)

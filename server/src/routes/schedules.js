@@ -55,6 +55,26 @@ async function checkCaretakerConflict(caretakerId, startDate, startTime, dayType
 }
 
 // Get all schedules
+router.get('/my', requireAuth(['patient']), async (req, res) => {
+  try {
+    const patient = await Patient.findOne({ userId: req.user.sub }).select('_id')
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient profile not found' })
+    }
+
+    const schedules = await Schedule.find({ patientId: patient._id })
+      .populate('patientId', 'patientId name phone address gender')
+      .populate('caretakerId', 'caretakerId name phone gender skills availability')
+      .sort({ startDate: 1, startTime: 1 })
+
+    res.json(schedules)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
 router.get('/', requireAuth(['admin']), async (req, res) => {
   try {
     const schedules = await Schedule.find()
@@ -69,11 +89,20 @@ router.get('/', requireAuth(['admin']), async (req, res) => {
 })
 
 // Create schedule(s) for a date range
-router.post('/', requireAuth(['admin']), async (req, res) => {
+router.post('/', requireAuth(['admin', 'patient']), async (req, res) => {
   try {
     const { patientId, caretakerId, startDate, endDate, startTime, dayType, wardNo, paymentToAgency, status, notes } = req.body
+
+    let effectivePatientId = patientId
+    if (req.user.role === 'patient') {
+      const patient = await Patient.findOne({ userId: req.user.sub }).select('_id')
+      if (!patient) {
+        return res.status(404).json({ message: 'Patient profile not found' })
+      }
+      effectivePatientId = patient._id.toString()
+    }
     
-    if (!patientId || !caretakerId || !startDate || !startTime || !dayType) {
+    if (!effectivePatientId || !caretakerId || !startDate || !startTime || !dayType) {
       return res.status(400).json({ message: 'Patient, Caretaker, Start Date, Start Time, and Day Type are required' })
     }
 
@@ -95,6 +124,21 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
 
     // Check conflicts for all dates first
     for (const date of dates) {
+      const duplicateSchedule = await Schedule.findOne({
+        patientId: effectivePatientId,
+        caretakerId,
+        startDate: new Date(date),
+        startTime,
+        dayType,
+        status: { $ne: 'cancelled' },
+      })
+
+      if (duplicateSchedule) {
+        return res.status(409).json({
+          message: `A booking already exists for ${date} at ${startTime} with this caretaker.`
+        })
+      }
+
       const conflict = await checkCaretakerConflict(caretakerId, date, startTime, dayType)
       if (conflict) {
         return res.status(409).json({ message: `Conflict on ${date}: ${conflict.message}` })
@@ -108,25 +152,28 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
 
     let finalWardNo = wardNo
     if (!finalWardNo) {
-      const patient = await Patient.findById(patientId)
+      const patient = await Patient.findById(effectivePatientId)
       if (patient && patient.address) {
         finalWardNo = patient.address
       }
     }
 
+    const finalPaymentToAgency = req.user.role === 'patient' ? 'unpaid' : (paymentToAgency || 'unpaid')
+    const finalStatus = req.user.role === 'patient' ? 'pending' : (status || 'pending')
+
     // Create schedules
     const createdSchedules = []
     for (const date of dates) {
       const schedule = await Schedule.create({
-        patientId,
+        patientId: effectivePatientId,
         caretakerId,
         wardNo: finalWardNo,
         startDate: date,
         startTime,
         dayType,
         dailyRate,
-        paymentToAgency: paymentToAgency || 'unpaid',
-        status: status || 'pending',
+        paymentToAgency: finalPaymentToAgency,
+        status: finalStatus,
         notes
       })
       createdSchedules.push(schedule)
@@ -140,6 +187,46 @@ router.post('/', requireAuth(['admin']), async (req, res) => {
       .populate('caretakerId', 'caretakerId name phone')
     
     res.status(201).json(populated)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ message: 'Server error' })
+  }
+})
+
+router.patch('/:id/patient-complete', requireAuth(['patient']), async (req, res) => {
+  try {
+    const patient = await Patient.findOne({ userId: req.user.sub }).select('_id')
+
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient profile not found' })
+    }
+
+    const schedule = await Schedule.findById(req.params.id)
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found' })
+    }
+
+    if (schedule.patientId.toString() !== patient._id.toString()) {
+      return res.status(403).json({ message: 'Access denied to this schedule' })
+    }
+
+    if (schedule.jobCompletedByPatient) {
+      return res.json({ message: 'Schedule already marked complete', schedule })
+    }
+
+    schedule.jobCompletedByPatient = true
+
+    if (schedule.jobCompletedByAdmin && schedule.paymentToAgency === 'paid' && schedule.paymentToCaretaker === 'success') {
+      schedule.status = 'completed'
+    }
+
+    await schedule.save()
+
+    const populated = await Schedule.findById(schedule._id)
+      .populate('patientId', 'patientId name phone address')
+      .populate('caretakerId', 'caretakerId name phone gender skills availability')
+
+    res.json(populated)
   } catch (e) {
     console.error(e)
     res.status(500).json({ message: 'Server error' })
