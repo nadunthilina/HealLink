@@ -6,7 +6,7 @@ import Caretaker from '../models/Caretaker.js'
 import Settings from '../models/Settings.js'
 import { requireAuth } from '../middleware/auth.js'
 import { getAssignedPatients, updateScheduleStatus } from '../controllers/scheduleController.js'
-import { createNotification } from '../utils/notificationHelper.js' // Notification helper එක import කළා
+import { createNotification } from '../utils/notificationHelper.js' 
 
 const router = Router()
 
@@ -155,7 +155,6 @@ router.post('/', requireAuth(['admin', 'patient']), async (req, res) => {
 
         // ==================== NOTIFICATION LOGIC START ====================
         try {
-            // Caretaker model එකෙන් userId එක සොයාගැනීම (Notification එක යන්නේ User ID එකට නිසා)
             const caretakerProfile = await Caretaker.findById(caretakerId);
             if (caretakerProfile && caretakerProfile.userId) {
                 const recipientId = caretakerProfile.userId;
