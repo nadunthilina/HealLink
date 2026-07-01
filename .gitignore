@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs  
+dist/
+build/
+*/dist/
+*/build/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Development
+*.log
+*.log.*
+.DS_Store
+Thumbs.db
+
+# Editor & IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Runtime
+.cache/
+.parcel-cache/
+.vite/
+
+# Coverage & Testing
+coverage/
+*.lcov
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+.tmp/
