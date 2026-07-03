@@ -16,6 +16,7 @@ import schedulesRoutes from './routes/schedules.js'
 import settingsRoutes from './routes/settings.js'
 import User from './models/User.js'
 import userDetailsRoutes from "./routes/userDetails.js";
+import notificationRoutes from './routes/notificationRoutes.js';
 
 dotenv.config()
 const app = express()
@@ -75,6 +76,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/schedules', schedulesRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use("/api/userDetails", userDetailsRoutes)
+app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 4000
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/heallink'
