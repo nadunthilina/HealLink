@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { schedulesAPI } from "../services/api";
+import NotificationBell from '../components/NotificationBell';
 
 export default function Caretaker() {
   const navigate = useNavigate();
@@ -989,6 +990,7 @@ export default function Caretaker() {
             <p className="text-xs md:text-sm text-gray-500">Caretaker Portal Interface</p>
           </div>
           <div className="flex items-center space-x-4 shrink-0">
+            <NotificationBell /> 
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-gray-900 truncate max-w-[160px]">
                 {caretakerData.name}
