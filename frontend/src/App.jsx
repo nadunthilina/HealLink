@@ -72,38 +72,31 @@ Go Back Home
 export default function App() {
 // ==================== SOCKET.IO & NOTIFICATION SETUP START ====================
 useEffect(() => {
-    // 1. LocalStorage එකෙන් User ID එක ලබා ගැනීම
     const user = JSON.parse(localStorage.getItem('user')); 
     const userId = user?.id || user?._id;
 
     if (userId) {
-        // Socket connection එක check කර connect කිරීම
         if (!socket.connected) {
             socket.connect();
         }
 
-        // Server එකට සම්බන්ධ වූ පසු room එකට join වීම
         socket.on('connect', () => {
             console.log("🔌 Socket physically connected to server!");
             socket.emit('join', userId);
             console.log("🚀 Socket joined room for user:", userId);
         });
 
-        // Connection error එකක් ආවොත් දැනුම් දීම
         socket.on('connect_error', (err) => {
             console.error("❌ Socket Connection Error:", err.message);
         });
 
         // --- TOAST NOTIFICATION LISTENER ---
         
-        // දැනට පවතින සියලුම 'new_notification' listeners ඉවත් කරන්න (Duplicate වීම වැළැක්වීමට)
         socket.off('new_notification');
 
-        // අලුතින් Listener එක එකතු කරන්න
         socket.on('new_notification', (data) => {
             console.log("🔔 New Notification Received in App.jsx:", data);
             
-            // Toast notification එක පෙන්වීම
             toast.info(`🔔 ${data.message}`, {
                 position: "top-right",
                 autoClose: 5000,
@@ -119,7 +112,6 @@ useEffect(() => {
     }
 
     return () => {
-        // App එකෙන් පිටවන විට cleanup කිරීම
         socket.off('connect');
         socket.off('connect_error');
         socket.off('new_notification');

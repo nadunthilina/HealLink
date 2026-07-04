@@ -219,26 +219,26 @@ router.post("/", requireAuth(["admin", "patient"]), async (req, res) => {
 
 // ==================== START OF ALL NOTIFICATIONS LOGIC ====================
 try {
-    // --- 1. CARETAKER NOTIFICATION (හැමවිටම යවයි) ---
     try {
         const caretakerProfile = await Caretaker.findById(caretakerId);
+        
         if (caretakerProfile && caretakerProfile.userId) {
             const recipientId = caretakerProfile.userId.toString();
             const senderId = req.user.sub || req.user._id || req.user.id;
 
-            // Patient ගේ නම ලබා ගැනීම
             const patientInfo = await Patient.findById(effectivePatientId);
             const patientName = patientInfo ? patientInfo.name : "a patient";
 
             const startStr = startDate;
             const endStr = endDate ? endDate : startDate;
             const dateRangeText = startStr === endStr ? `on ${startStr}` : `from ${startStr} to ${endStr}`;
-            const caretakerMsg = `You have been assigned a new schedule for ${patientName} ${dateRangeText}. Please check your dashboard.`;
+            
+            const caretakerMsg = req.user.role === 'patient' 
+                ? `A new booking request has been made by ${patientName} ${dateRangeText}. Please check your dashboard.`
+                : `You have been assigned a new schedule for ${patientName} ${dateRangeText}. Please check your dashboard.`;
 
             if (recipientId && senderId) {
-                // DB එකට save කිරීම
                 await createNotification(recipientId, senderId, caretakerMsg, "SCHEDULE");
-                // Socket signal එක යැවීම
                 io.to(recipientId).emit("new_notification", {
                     message: caretakerMsg,
                     type: "SCHEDULE",
@@ -246,13 +246,15 @@ try {
                 });
                 console.log("✅ Caretaker Notification: Saved & Emitted");
             }
+        } else {
+            console.log("⚠️ Caretaker profile or userId not found for ID:", caretakerId);
         }
     } catch (caretakerErr) {
         console.error("❌ Caretaker Notification Error:", caretakerErr);
     }
 
-    // --- 2. PATIENT PAYMENT NOTIFICATION (Payment 'paid' වූ විට පමණක් යවයි) ---
-    try {
+    // 2. PATIENT PAYMENT NOTIFICATION 
+    try { 
         if (paymentToAgency === 'paid') {
             const patientProfile = await Patient.findById(effectivePatientId);
             if (patientProfile && patientProfile.userId) {
@@ -265,10 +267,8 @@ try {
                 const paymentMsg = `Payment successfully received for your schedule ${dateRangeText}. Thank you!`;
 
                 if (patientUserId && senderId) {
-                    // DB එකට save කිරීම
                     await createNotification(patientUserId, senderId, paymentMsg, "PAYMENT");
-                    // Socket signal එක යැවීම
-                    io.to(patientUserId).emit("new_notification", {
+                    io.to(patientUserId).emit("new_//notification", { // typo check: new_notification
                         message: paymentMsg,
                         type: "PAYMENT",
                         timestamp: new Date().toISOString()
@@ -276,8 +276,6 @@ try {
                     console.log("✅ Patient Payment Notification: Saved & Emitted");
                 }
             }
-        } else {
-            console.log("⚪ Payment is not 'paid', skipping patient notification.");
         }
     } catch (patientErr) {
         console.error("❌ Patient Notification Error:", patientErr);
