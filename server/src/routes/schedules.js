@@ -222,36 +222,49 @@ try {
     const caretakerProfile = await Caretaker.findById(caretakerId);
     
     if (caretakerProfile && caretakerProfile.userId) {
-        const recipientId = caretakerProfile.userId.toString(); // Recipient (Caretaker) User ID
+        const recipientId = caretakerProfile.userId.toString();
         const senderId = req.user.sub || req.user._id || req.user.id;
 
+        // 1. Patient ගේ නම ලබා ගැනීම (කලින්ම create කළ createdSchedules Array එකෙන් ලබාගත හැක)
+        const patientId = createdSchedules[0].patientId;
+        const patient = await Patient.findById(patientId);
+        const patientName = patient ? patient.name : "a patient";
+
+        // 2. Date Range එක සකස් කිරීම
+        const startStr = startDate; // 'YYYY-MM-DD'
+        const endStr = endDate ? endDate : startDate; // End date නැත්නම් start date එකම ගන්න
+        
+        // Message එක ලස්සනට සකස් කිරීම
+        const dateRangeText = startStr === endStr 
+            ? `on ${startStr}` 
+            : `from ${startStr} to ${endStr}`;
+
+        const finalMessage = `You have been assigned a new schedule for ${patientName} ${dateRangeText}. Please check your dashboard.`;
+
         console.log("--- 🔔 Notification Processing ---");
-        console.log(`🎯 Target User (Recipient): ${recipientId}`);
-        console.log(`👤 Sender (Admin/Patient): ${senderId}`);
+        console.log(`🎯 Target User: ${recipientId}`);
+        console.log(`📝 Message: ${finalMessage}`);
 
         if (recipientId && senderId) {
+            // A. Database එකේ save කිරීම
             await createNotification(
                 recipientId,
                 senderId,
-                `You have been assigned a new schedule. Please check your dashboard.`,
+                finalMessage, // වෙනස් කළ message එක
                 "SCHEDULE"
             );
-            console.log("💾 Notification saved to Database successfully.");
+            console.log("💾 Notification saved to Database.");
 
+            // B. Socket.io හරහා Real-time signal එක යැවීම
             io.to(recipientId).emit("new_notification", {
-                message: `You have been assigned a new schedule. Please check your dashboard.`,
+                message: finalMessage, // වෙනස් කළ message එක
                 type: "SCHEDULE",
                 timestamp: new Date().toISOString()
             });
 
             console.log(`🚀 Socket signal emitted to room: ${recipientId}`);
-            console.log("✅ Real-time notification process completed!");
             console.log("-------------------------------------------");
-        } else {
-            console.log("⚠️ Notification skipped: Missing recipientId or senderId.");
         }
-    } else {
-        console.log("⚠️ Notification skipped: Caretaker profile or UserID not found for this caretaker.");
     }
 } catch (notifErr) {
     console.error("❌ Notification logic error in Route:", notifErr);
