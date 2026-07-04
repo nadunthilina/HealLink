@@ -217,59 +217,76 @@ router.post("/", requireAuth(["admin", "patient"]), async (req, res) => {
       createdSchedules.push(schedule);
     }
 
-// ==================== NOTIFICATION LOGIC START ====================
+// ==================== START OF ALL NOTIFICATIONS LOGIC ====================
 try {
-    const caretakerProfile = await Caretaker.findById(caretakerId);
-    
-    if (caretakerProfile && caretakerProfile.userId) {
-        const recipientId = caretakerProfile.userId.toString();
-        const senderId = req.user.sub || req.user._id || req.user.id;
+    // --- 1. CARETAKER NOTIFICATION (හැමවිටම යවයි) ---
+    try {
+        const caretakerProfile = await Caretaker.findById(caretakerId);
+        if (caretakerProfile && caretakerProfile.userId) {
+            const recipientId = caretakerProfile.userId.toString();
+            const senderId = req.user.sub || req.user._id || req.user.id;
 
-        // 1. Patient ගේ නම ලබා ගැනීම (කලින්ම create කළ createdSchedules Array එකෙන් ලබාගත හැක)
-        const patientId = createdSchedules[0].patientId;
-        const patient = await Patient.findById(patientId);
-        const patientName = patient ? patient.name : "a patient";
+            // Patient ගේ නම ලබා ගැනීම
+            const patientInfo = await Patient.findById(effectivePatientId);
+            const patientName = patientInfo ? patientInfo.name : "a patient";
 
-        // 2. Date Range එක සකස් කිරීම
-        const startStr = startDate; // 'YYYY-MM-DD'
-        const endStr = endDate ? endDate : startDate; // End date නැත්නම් start date එකම ගන්න
-        
-        // Message එක ලස්සනට සකස් කිරීම
-        const dateRangeText = startStr === endStr 
-            ? `on ${startStr}` 
-            : `from ${startStr} to ${endStr}`;
+            const startStr = startDate;
+            const endStr = endDate ? endDate : startDate;
+            const dateRangeText = startStr === endStr ? `on ${startStr}` : `from ${startStr} to ${endStr}`;
+            const caretakerMsg = `You have been assigned a new schedule for ${patientName} ${dateRangeText}. Please check your dashboard.`;
 
-        const finalMessage = `You have been assigned a new schedule for ${patientName} ${dateRangeText}. Please check your dashboard.`;
-
-        console.log("--- 🔔 Notification Processing ---");
-        console.log(`🎯 Target User: ${recipientId}`);
-        console.log(`📝 Message: ${finalMessage}`);
-
-        if (recipientId && senderId) {
-            // A. Database එකේ save කිරීම
-            await createNotification(
-                recipientId,
-                senderId,
-                finalMessage, // වෙනස් කළ message එක
-                "SCHEDULE"
-            );
-            console.log("💾 Notification saved to Database.");
-
-            // B. Socket.io හරහා Real-time signal එක යැවීම
-            io.to(recipientId).emit("new_notification", {
-                message: finalMessage, // වෙනස් කළ message එක
-                type: "SCHEDULE",
-                timestamp: new Date().toISOString()
-            });
-
-            console.log(`🚀 Socket signal emitted to room: ${recipientId}`);
-            console.log("-------------------------------------------");
+            if (recipientId && senderId) {
+                // DB එකට save කිරීම
+                await createNotification(recipientId, senderId, caretakerMsg, "SCHEDULE");
+                // Socket signal එක යැවීම
+                io.to(recipientId).emit("new_notification", {
+                    message: caretakerMsg,
+                    type: "SCHEDULE",
+                    timestamp: new Date().toISOString()
+                });
+                console.log("✅ Caretaker Notification: Saved & Emitted");
+            }
         }
+    } catch (caretakerErr) {
+        console.error("❌ Caretaker Notification Error:", caretakerErr);
     }
-} catch (notifErr) {
-    console.error("❌ Notification logic error in Route:", notifErr);
+
+    // --- 2. PATIENT PAYMENT NOTIFICATION (Payment 'paid' වූ විට පමණක් යවයි) ---
+    try {
+        if (paymentToAgency === 'paid') {
+            const patientProfile = await Patient.findById(effectivePatientId);
+            if (patientProfile && patientProfile.userId) {
+                const patientUserId = patientProfile.userId.toString();
+                const senderId = req.user.sub || req.user._id || req.user.id;
+
+                const startStr = startDate;
+                const endStr = endDate ? endDate : startDate;
+                const dateRangeText = startStr === endStr ? `on ${startStr}` : `from ${startStr} to ${endStr}`;
+                const paymentMsg = `Payment successfully received for your schedule ${dateRangeText}. Thank you!`;
+
+                if (patientUserId && senderId) {
+                    // DB එකට save කිරීම
+                    await createNotification(patientUserId, senderId, paymentMsg, "PAYMENT");
+                    // Socket signal එක යැවීම
+                    io.to(patientUserId).emit("new_notification", {
+                        message: paymentMsg,
+                        type: "PAYMENT",
+                        timestamp: new Date().toISOString()
+                    });
+                    console.log("✅ Patient Payment Notification: Saved & Emitted");
+                }
+            }
+        } else {
+            console.log("⚪ Payment is not 'paid', skipping patient notification.");
+        }
+    } catch (patientErr) {
+        console.error("❌ Patient Notification Error:", patientErr);
+    }
+
+} catch (globalNotifErr) {
+    console.error("❌ Global Notification Error:", globalNotifErr);
 }
-// ==================== NOTIFICATION LOGIC END ====================
+// ==================== END OF ALL NOTIFICATIONS LOGIC ====================
 
     const populated = await Schedule.findById(createdSchedules[0]._id)
       .populate("patientId", "patientId name phone address")
