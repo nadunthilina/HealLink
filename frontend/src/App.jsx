@@ -90,14 +90,13 @@ useEffect(() => {
             console.error("❌ Socket Connection Error:", err.message);
         });
 
+        // --- TOAST NOTIFICATION LISTENER ---
         
         socket.off('new_notification');
 
-        socket.on('new_//notification', (data) => {
-        });
-        
         socket.on('new_notification', (data) => {
-            console.log("🔔 New Notification Received:", data);
+            console.log("🔔 New Notification Received in App.jsx:", data);
+            
             toast.info(`🔔 ${data.message}`, {
                 position: "top-right",
                 autoClose: 5000,

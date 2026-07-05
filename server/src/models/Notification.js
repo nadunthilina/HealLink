@@ -17,7 +17,8 @@ const notificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['REQUEST', 'MESSAGE', 'ALERT', 'SYSTEM', 'SCHEDULE'],
+        // මෙහි 'PAYMENT' යන්න අලුතින් එකතු කළා
+        enum: ['REQUEST', 'MESSAGE', 'ALERT', 'SYSTEM', 'SCHEDULE', 'PAYMENT'], 
         default: 'SYSTEM'
     },
     isRead: {

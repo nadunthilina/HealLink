@@ -13,13 +13,11 @@ const NotificationBell = () => {
   const userId = user?.id || user?._id;
   const token = localStorage.getItem("token");
 
-  // API Config
   const api = axios.create({
     baseURL: "http://localhost:4000/api",
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  // 1. Notifications සහ Count ලබාගැනීම
   const fetchNotifications = async () => {
     try {
       const [notifRes, countRes] = await Promise.all([
@@ -33,7 +31,6 @@ const NotificationBell = () => {
     }
   };
 
-  // 2. සියලුම Notifications 'Read' ලෙස mark කිරීම
   const markAsRead = async () => {
     try {
       await api.patch(`/notifications/read/${userId}`);
@@ -46,13 +43,10 @@ const NotificationBell = () => {
 
   useEffect(() => {
     if (!userId) return;
-
     fetchNotifications();
 
     socket.on("new_notification", (data) => {
-      console.log("🔔 Real-time notification received in Bell!");
       setUnreadCount((prev) => prev + 1);
-
       setNotifications((prev) => [
         {
           _id: Date.now().toString(), 
@@ -92,50 +86,59 @@ const NotificationBell = () => {
         )}
       </button>
 
-      {/* Notification Dropdown */}
+      {/* Notification Dropdown - MOBILE RESPONSIVE UPDATED */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-          <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-            <h3 className="text-sm font-semibold text-gray-700">
-              Notifications
-            </h3>
-            <span
-              className="text-xs text-primary cursor-pointer hover:underline"
-              onClick={markAsRead}
-            >
-              Mark all as read
-            </span>
-          </div>
+        <>
+          {/* Backdrop: Dropdown එකෙන් පිටත ක්ලික් කළ විට එය වැසීමට (Mobile වලට ඉතා වැදගත්) */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)}
+          ></div>
 
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="p-4 text-center text-sm text-gray-500">
-                No notifications yet.
-              </div>
-            ) : (
-              notifications.map((notif, index) => (
-                <div
-                  key={notif._id || index}
-                  className={`px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors ${notif.isRead ? "bg-white" : "bg-blue-50"}`}
-                  onClick={() => {
-                  }}
-                >
-                  <p className="text-xs text-gray-800 leading-relaxed">
-                    {notif.message}
-                  </p>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-[10px] text-gray-400">
-                      {new Date(notif.createdAt).toLocaleDateString()}
-                    </span>
-                    {!notif.isRead && (
-                      <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                    )}
-                  </div>
+          <div className="absolute right-0 mt-2 w-72 sm:w-80 origin-top-right rounded-lg bg-white shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-sm font-semibold text-gray-700">
+                Notifications
+              </h3>
+              <span
+                className="text-xs text-primary cursor-pointer hover:underline font-medium"
+                onClick={markAsRead}
+              >
+                Mark all read
+              </span>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-500">
+                  <div className="text-2xl mb-2">🔔</div>
+                  No notifications yet.
                 </div>
-              ))
-            )}
+              ) : (
+                notifications.map((notif, index) => (
+                  <div
+                    key={notif._id || index}
+                    className={`px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors ${
+                      notif.isRead ? "bg-white" : "bg-blue-50/50"
+                    }`}
+                  >
+                    <p className="text-xs text-gray-800 leading-relaxed line-clamp-3">
+                      {notif.message}
+                    </p>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(notif.createdAt).toLocaleDateString()}
+                      </span>
+                      {!notif.isRead && (
+                        <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

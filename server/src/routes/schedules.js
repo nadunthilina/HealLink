@@ -217,46 +217,74 @@ router.post("/", requireAuth(["admin", "patient"]), async (req, res) => {
       createdSchedules.push(schedule);
     }
 
-// ==================== NOTIFICATION LOGIC START ====================
+// ==================== START OF ALL NOTIFICATIONS LOGIC ====================
 try {
-    const caretakerProfile = await Caretaker.findById(caretakerId);
-    
-    if (caretakerProfile && caretakerProfile.userId) {
-        const recipientId = caretakerProfile.userId.toString(); // Recipient (Caretaker) User ID
-        const senderId = req.user.sub || req.user._id || req.user.id;
+    try {
+        const caretakerProfile = await Caretaker.findById(caretakerId);
+        
+        if (caretakerProfile && caretakerProfile.userId) {
+            const recipientId = caretakerProfile.userId.toString();
+            const senderId = req.user.sub || req.user._id || req.user.id;
 
-        console.log("--- 🔔 Notification Processing ---");
-        console.log(`🎯 Target User (Recipient): ${recipientId}`);
-        console.log(`👤 Sender (Admin/Patient): ${senderId}`);
+            const patientInfo = await Patient.findById(effectivePatientId);
+            const patientName = patientInfo ? patientInfo.name : "a patient";
 
-        if (recipientId && senderId) {
-            await createNotification(
-                recipientId,
-                senderId,
-                `You have been assigned a new schedule. Please check your dashboard.`,
-                "SCHEDULE"
-            );
-            console.log("💾 Notification saved to Database successfully.");
+            const startStr = startDate;
+            const endStr = endDate ? endDate : startDate;
+            const dateRangeText = startStr === endStr ? `on ${startStr}` : `from ${startStr} to ${endStr}`;
+            
+            const caretakerMsg = req.user.role === 'patient' 
+                ? `A new booking request has been made by ${patientName} ${dateRangeText}. Please check your dashboard.`
+                : `You have been assigned a new schedule for ${patientName} ${dateRangeText}. Please check your dashboard.`;
 
-            io.to(recipientId).emit("new_notification", {
-                message: `You have been assigned a new schedule. Please check your dashboard.`,
-                type: "SCHEDULE",
-                timestamp: new Date().toISOString()
-            });
-
-            console.log(`🚀 Socket signal emitted to room: ${recipientId}`);
-            console.log("✅ Real-time notification process completed!");
-            console.log("-------------------------------------------");
+            if (recipientId && senderId) {
+                await createNotification(recipientId, senderId, caretakerMsg, "SCHEDULE");
+                io.to(recipientId).emit("new_notification", {
+                    message: caretakerMsg,
+                    type: "SCHEDULE",
+                    timestamp: new Date().toISOString()
+                });
+                console.log("✅ Caretaker Notification: Saved & Emitted");
+            }
         } else {
-            console.log("⚠️ Notification skipped: Missing recipientId or senderId.");
+            console.log("⚠️ Caretaker profile or userId not found for ID:", caretakerId);
         }
-    } else {
-        console.log("⚠️ Notification skipped: Caretaker profile or UserID not found for this caretaker.");
+    } catch (caretakerErr) {
+        console.error("❌ Caretaker Notification Error:", caretakerErr);
     }
-} catch (notifErr) {
-    console.error("❌ Notification logic error in Route:", notifErr);
+
+    // 2. PATIENT PAYMENT NOTIFICATION 
+    try { 
+        if (paymentToAgency === 'paid') {
+            const patientProfile = await Patient.findById(effectivePatientId);
+            if (patientProfile && patientProfile.userId) {
+                const patientUserId = patientProfile.userId.toString();
+                const senderId = req.user.sub || req.user._id || req.user.id;
+
+                const startStr = startDate;
+                const endStr = endDate ? endDate : startDate;
+                const dateRangeText = startStr === endStr ? `on ${startStr}` : `from ${startStr} to ${endStr}`;
+                const paymentMsg = `Payment successfully received for your schedule ${dateRangeText}. Thank you!`;
+
+                if (patientUserId && senderId) {
+                    await createNotification(patientUserId, senderId, paymentMsg, "PAYMENT");
+                    io.to(patientUserId).emit("new_//notification", { // typo check: new_notification
+                        message: paymentMsg,
+                        type: "PAYMENT",
+                        timestamp: new Date().toISOString()
+                    });
+                    console.log("✅ Patient Payment Notification: Saved & Emitted");
+                }
+            }
+        }
+    } catch (patientErr) {
+        console.error("❌ Patient Notification Error:", patientErr);
+    }
+
+} catch (globalNotifErr) {
+    console.error("❌ Global Notification Error:", globalNotifErr);
 }
-// ==================== NOTIFICATION LOGIC END ====================
+// ==================== END OF ALL NOTIFICATIONS LOGIC ====================
 
     const populated = await Schedule.findById(createdSchedules[0]._id)
       .populate("patientId", "patientId name phone address")

@@ -980,31 +980,47 @@ export default function Caretaker() {
         {/* Header
             was: py-4 px-8 — now py-3 px-4 md:px-8 for mobile */}
         <header className="bg-white shadow-sm border-b border-gray-200 py-3 px-4 md:px-8 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            {/* was: text-xl — now text-base md:text-xl */}
-            <h1 className="text-base md:text-xl font-semibold text-gray-800 capitalize truncate">
-              {activePage === "userDetails"
+    <div className="min-w-0">
+        <h1 className="text-base md:text-xl font-semibold text-gray-800 capitalize truncate">
+            {activePage === "userDetails"
                 ? "Profile"
                 : activePage.replace(/([A-Z])/g, " $1")}
-            </h1>
-            <p className="text-xs md:text-sm text-gray-500">Caretaker Portal Interface</p>
-          </div>
-          <div className="flex items-center space-x-4 shrink-0">
-            <NotificationBell /> 
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-gray-900 truncate max-w-[160px]">
+        </h1>
+        <p className="text-xs md:text-sm text-gray-500">Caretaker Portal Interface</p>
+    </div>
+
+    {/* Right Side Actions */}
+    <div className="flex items-center space-x-3 md:space-x-4 shrink-0">
+        
+        {/* 🔔 මෙන්න මෙතැනට Bell Icon එක දාන්න - දැන් මෙය Mobile සහ Desktop දෙකටම පෙනේවි */}
+        <NotificationBell /> 
+
+        {/* Desktop Only User Info */}
+        <div className="hidden sm:block text-right">
+            <p className="text-sm font-bold text-gray-900 truncate max-w-[160px]">
                 {caretakerData.name}
-              </p>
-              <p
-                className={`text-xs font-medium whitespace-nowrap ${
-                  isAvailable ? "text-green-600" : "text-red-600"
-                }`}
-              >
+            </p>
+            <p className={`text-xs font-medium whitespace-nowrap ${isAvailable ? "text-green-600" : "text-red-600"}`}>
                 {isAvailable ? "● Available" : "● Offline"}
-              </p>
-            </div>
-          </div>
-        </header>
+            </p>
+        </div>
+
+        {/* Mobile Menu Button (ඔබේ image එකේ තිබුණු button එක) */}
+        <button 
+            onClick={() => {
+                const sidebar = document.getElementById("sidebar");
+                const overlay = document.getElementById("sidebar-overlay");
+                sidebar.classList.remove("-translate-x-full");
+                overlay.classList.remove("hidden");
+            }}
+            className="md:hidden p-2 bg-blue-900 text-white rounded-lg shadow-sm"
+        >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+    </div>
+</header>
 
         {/* Content Scrolling Area
             was: p-8 — now p-3 sm:p-4 md:p-6 lg:p-8 */}
